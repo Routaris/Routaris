@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NomadRoute – Dein Reiseplaner für Individualreisen</title>
+  <meta name="description" content="NomadRoute – Personalisierte Routenplanung für Individualreisen">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+  <!-- App CSS -->
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/steps.css">
+  <link rel="stylesheet" href="css/responsive.css">
+
+  <!-- Favicon (dynamisch per JS, Standard: 🌏) -->
+  <link rel="icon" id="favicon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🌏</text></svg>">
+
+  <style>
+    /* Header & Footer */
+    .site-header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: rgba(250, 249, 247, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(0,0,0,0.05);
+      padding: 0 var(--space-lg);
+      height: 64px;
+      transition: background 0.3s ease, border-color 0.3s ease;
+    }
+
+    /* Transparent header on hero */
+    .site-header.hero-mode {
+      background: rgba(24, 23, 15, 0.2);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      border-bottom-color: rgba(255, 255, 255, 0.1);
+    }
+
+    .site-header.hero-mode .logo img {
+      filter: brightness(0) invert(1);
+    }
+
+    .site-header.hero-mode .header-nav a {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    .site-header.hero-mode .header-nav a:hover {
+      color: var(--white);
+    }
+
+    .site-header .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 100%;
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+    }
+
+    .logo img {
+      height: 100px;
+      width: auto;
+      display: block;
+    }
+
+    .logo-subtitle {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 0.7rem;
+      font-weight: 600;
+      color: var(--ink-muted);
+      letter-spacing: 0.03em;
+      border-left: 1.5px solid var(--border);
+      padding-left: var(--space-sm);
+      display: none;
+    }
+
+    .logo-subtitle.visible {
+      display: block;
+    }
+
+    .header-nav {
+      display: flex;
+      align-items: center;
+      gap: var(--space-xl);
+    }
+
+    .header-nav a {
+      font-size: 0.85rem;
+      color: var(--ink-muted);
+      transition: color var(--transition-fast);
+    }
+
+    .header-nav a:hover {
+      color: var(--ink);
+    }
+
+    .site-footer {
+      background: rgba(250, 249, 247, 0.9);
+      backdrop-filter: blur(12px);
+      border-top: 1px solid rgba(0,0,0,0.05);
+      padding: var(--space-xl) var(--space-lg);
+      text-align: center;
+    }
+
+    .footer-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: var(--space-lg);
+      font-size: 0.8rem;
+      color: var(--ink-muted);
+      flex-wrap: wrap;
+    }
+
+    .footer-content span {
+      opacity: 0.5;
+    }
+
+    /* Header Spacer */
+    main {
+      padding-top: 64px;
+    }
+
+    /* Error Message Toast */
+    .error-toast {
+      display: none;
+      position: fixed;
+      bottom: var(--space-xl);
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--danger);
+      color: white;
+      padding: var(--space-md) var(--space-xl);
+      border-radius: var(--radius-md);
+      font-size: 0.9rem;
+      font-weight: 500;
+      box-shadow: var(--shadow-lg);
+      z-index: 1001;
+      max-width: 90%;
+      text-align: center;
+    }
+
+    /* Map Tooltip Custom */
+    .map-tooltip {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 600;
+      border-radius: 6px !important;
+      padding: 4px 10px !important;
+      border: none !important;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ======= HEADER ======= -->
+  <header class="site-header hero-mode">
+    <div class="container">
+      <div class="logo">
+        <img src="CI/logo-header.png" alt="NomadRoute" id="logo-img">
+        <span class="logo-subtitle" id="logo-subtitle"></span>
+      </div>
+      <nav class="header-nav">
+        <a href="#" onclick="App.showApiKeyModal(); return false;">API Key</a>
+        <a href="#" onclick="if (App.currentStep > 0 && !confirm('Alle Eingaben gehen verloren. Möchtest du wirklich neu starten?')) return false; App.restart(); return false;">Neu starten</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ======= PROGRESS BAR ======= -->
+  <div class="progress-bar" style="position: fixed; top: 64px; left: 0; right: 0; z-index: 99; background: var(--cream); display: none;">
+    <div class="progress-dot active"></div>
+    <div class="progress-dot"></div>
+    <div class="progress-dot"></div>
+    <div class="progress-dot"></div>
+    <div class="progress-dot"></div>
+  </div>
+
+  <!-- ======= MAIN ======= -->
+  <main>
+
+    <!-- ======= STEP 0: HERO / LÄNDERAUSWAHL ======= -->
+    <section id="step-0" class="step active">
+      <div class="hero">
+        <div class="hero-content">
+          <div class="hero-logo">
+            <img src="CI/logo-hero.png" alt="NomadRoute" id="hero-logo-img">
+          </div>
+          <div class="hero-badge">
+            Personalisierte Routenplanung
+          </div>
+          <h1 id="hero-title">Deine perfekte Reiseroute in <em>wenigen Klicks</em></h1>
+          <p class="hero-subtitle" id="hero-subtitle">
+            Wähle dein Reiseziel und erstelle in wenigen Klicks eine maßgeschneiderte Route –
+            mit interaktiver Karte, Tagesplänen und praktischen Tipps.
+          </p>
+
+          <!-- Länderauswahl -->
+          <div class="country-selector" id="country-selector">
+            <div class="country-card" data-country="china" onclick="App.selectCountry('china')" role="button" tabindex="0" style="background-image: url('images/hero/china.jpg')">
+              <div class="country-card-overlay"></div>
+              <span class="country-card-name">China</span>
+              <span class="country-card-brand">Jaderoute</span>
+            </div>
+            <div class="country-card" data-country="vietnam" onclick="App.selectCountry('vietnam')" role="button" tabindex="0" style="background-image: url('images/hero/vietnam.jpg')">
+              <div class="country-card-overlay"></div>
+              <span class="country-card-name">Vietnam</span>
+              <span class="country-card-brand">Lotuspfad</span>
+            </div>
+            <div class="country-card" data-country="japan" onclick="App.selectCountry('japan')" role="button" tabindex="0" style="background-image: url('images/hero/japan.jpg')">
+              <div class="country-card-overlay"></div>
+              <span class="country-card-name">Japan</span>
+              <span class="country-card-brand">Sakurapfad</span>
+            </div>
+            <div class="country-card" data-country="thailand" onclick="App.selectCountry('thailand')" role="button" tabindex="0" style="background-image: url('images/hero/thailand.jpg')">
+              <div class="country-card-overlay"></div>
+              <span class="country-card-name">Thailand</span>
+              <span class="country-card-brand">Siamroute</span>
+            </div>
+            <div class="country-card" data-country="indonesia" onclick="App.selectCountry('indonesia')" role="button" tabindex="0" style="background-image: url('images/hero/indonesia.jpg')">
+              <div class="country-card-overlay"></div>
+              <span class="country-card-name">Indonesien</span>
+              <span class="country-card-brand">Inselroute</span>
+            </div>
+          </div>
+
+          <div class="hero-features">
+            <div class="hero-feature">
+              <span>Interaktive Karte</span>
+            </div>
+            <div class="hero-feature-sep" aria-hidden="true">/</div>
+            <div class="hero-feature">
+              <span>Detaillierte Tagespläne</span>
+            </div>
+            <div class="hero-feature-sep" aria-hidden="true">/</div>
+            <div class="hero-feature">
+              <span>Familienfreundlich</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= STEP 1: BASICS ======= -->
+    <section id="step-1" class="step">
+      <div class="container">
+        <div class="step-header">
+          <div class="step-number">1</div>
+          <h2>Erzähl uns von deiner Reise</h2>
+          <p>Grundlegende Angaben für deine personalisierte Route</p>
+        </div>
+
+        <div class="basics-grid">
+
+          <!-- Ankunftsort (dynamisch befüllt) -->
+          <div class="form-group full-width">
+            <label class="form-label">Wo kommst du an?</label>
+            <div class="radio-cards airport-cards" id="arrival-cards">
+              <!-- Wird dynamisch von App.renderAirports() befüllt -->
+            </div>
+            <div class="custom-airport-wrap">
+              <label class="custom-airport-label" for="custom-airport">Anderer Ankunftsort:</label>
+              <input type="text" class="form-input" id="custom-airport"
+                     aria-label="Anderer Ankunftsort"
+                     placeholder="z.B. Grenzübergang, Bahnhof, anderer Flughafen...">
+            </div>
+          </div>
+
+          <!-- Abreise -->
+          <div class="form-group full-width">
+            <label class="form-label">Abreise</label>
+            <div class="radio-cards return-toggle-cards">
+              <div class="radio-card active" data-return="same" role="button" tabindex="0">
+                <div class="radio-card-icon" aria-hidden="true">🔄</div>
+                <div class="radio-card-label">Gleicher Ort</div>
+              </div>
+              <div class="radio-card" data-return="different" role="button" tabindex="0">
+                <div class="radio-card-icon" aria-hidden="true">➡️</div>
+                <div class="radio-card-label">Anderer Ort</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Abreiseort (bedingt sichtbar) -->
+          <div class="return-airport-group" id="return-airport-group">
+            <label class="form-label">Von wo reist du ab?</label>
+            <div class="radio-cards airport-cards" id="return-cards">
+              <!-- Wird dynamisch von App.renderAirports() befüllt -->
+            </div>
+            <div class="custom-airport-wrap">
+              <label class="custom-airport-label" for="custom-return-airport">Anderer Abreiseort:</label>
+              <input type="text" class="form-input" id="custom-return-airport"
+                     aria-label="Anderer Abreiseort"
+                     placeholder="z.B. Kunming, Grenze nach Laos...">
+            </div>
+          </div>
+
+          <!-- Transportmittel (dynamisch befüllt) -->
+          <div class="form-group full-width">
+            <label class="form-label">Reisemittel zwischen Städten</label>
+            <div class="radio-cards" id="transport-cards">
+              <!-- Wird dynamisch von App.renderTransportCards() befüllt -->
+            </div>
+          </div>
+
+          <!-- Maximale Zugzeit (bedingt sichtbar) -->
+          <div class="train-hours-group" id="train-hours-group">
+            <div class="range-header">
+              <span class="range-label">Flug erst ab</span>
+              <span class="range-value" id="train-hours-value">6 Stunden Zugfahrt</span>
+            </div>
+            <div class="range-slider">
+              <input type="range" id="train-hours-slider" min="3" max="12" value="6" step="1" aria-label="Flug erst ab X Stunden Zugfahrt">
+              <div class="range-labels">
+                <span>3h</span>
+                <span>12h</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reisedauer -->
+          <div class="form-group full-width">
+            <div class="range-header">
+              <span class="range-label">Reisedauer</span>
+              <span class="range-value" id="days-value">14 Tage</span>
+            </div>
+            <div class="range-slider">
+              <input type="range" id="days-slider" min="7" max="35" value="14" step="1" aria-label="Reisedauer in Tagen">
+              <div class="range-labels">
+                <span>7 Tage</span>
+                <span>35 Tage</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reisezeitraum -->
+          <div class="form-group full-width">
+            <label class="form-label">Reisezeitraum</label>
+            <div class="radio-cards">
+              <div class="radio-card active" data-season="spring" role="button" tabindex="0">
+                <div class="radio-card-icon" aria-hidden="true">🌸</div>
+                <div class="radio-card-label">Frühling</div>
+                <div class="radio-card-desc">März – Mai</div>
+              </div>
+              <div class="radio-card" data-season="summer" role="button" tabindex="0">
+                <div class="radio-card-icon" aria-hidden="true">☀️</div>
+                <div class="radio-card-label">Sommer</div>
+                <div class="radio-card-desc">Juni – August</div>
+              </div>
+              <div class="radio-card" data-season="autumn" role="button" tabindex="0">
+                <div class="radio-card-icon" aria-hidden="true">🍂</div>
+                <div class="radio-card-label">Herbst</div>
+                <div class="radio-card-desc">Sept – Nov</div>
+              </div>
+              <div class="radio-card" data-season="winter" role="button" tabindex="0">
+                <div class="radio-card-icon" aria-hidden="true">❄️</div>
+                <div class="radio-card-label">Winter</div>
+                <div class="radio-card-desc">Dez – Feb</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Reisegruppe -->
+          <div class="form-group full-width">
+            <label class="form-label">Reisegruppe</label>
+            <div class="radio-cards">
+              <div class="radio-card active" data-group="solo" role="button" tabindex="0">
+                <div class="radio-card-icon" aria-hidden="true">🧳</div>
+                <div class="radio-card-label">Allein</div>
+              </div>
+              <div class="radio-card" data-group="couple" role="button" tabindex="0">
+                <div class="radio-card-icon" aria-hidden="true">💑</div>
+                <div class="radio-card-label">Paar</div>
+              </div>
+              <div class="radio-card" data-group="family" role="button" tabindex="0">
+                <div class="radio-card-icon" aria-hidden="true">👨‍👩‍👧</div>
+                <div class="radio-card-label">Familie</div>
+              </div>
+              <div class="radio-card" data-group="friends" role="button" tabindex="0">
+                <div class="radio-card-icon" aria-hidden="true">👥</div>
+                <div class="radio-card-label">Freunde</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Kind-Alter (bedingt sichtbar) -->
+          <div class="child-age-group" id="child-age-group">
+            <label class="form-label">Alter des Kindes</label>
+            <div class="radio-cards">
+              <div class="radio-card" role="button" tabindex="0" data-age="0-1">
+                <div class="radio-card-icon" aria-hidden="true">👶</div>
+                <div class="radio-card-label">0–1 Jahr</div>
+              </div>
+              <div class="radio-card" role="button" tabindex="0" data-age="1-3">
+                <div class="radio-card-icon" aria-hidden="true">🧒</div>
+                <div class="radio-card-label">1–3 Jahre</div>
+              </div>
+              <div class="radio-card" role="button" tabindex="0" data-age="3-6">
+                <div class="radio-card-icon" aria-hidden="true">👦</div>
+                <div class="radio-card-label">3–6 Jahre</div>
+              </div>
+              <div class="radio-card" role="button" tabindex="0" data-age="6-12">
+                <div class="radio-card-icon" aria-hidden="true">🧑</div>
+                <div class="radio-card-label">6–12 Jahre</div>
+              </div>
+              <div class="radio-card" role="button" tabindex="0" data-age="12+">
+                <div class="radio-card-icon" aria-hidden="true">🧑‍🎓</div>
+                <div class="radio-card-label">12+ Jahre</div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Navigation -->
+        <div class="step-nav">
+          <button class="btn btn-outline" data-action="prev">Zurück</button>
+          <button class="btn btn-primary" data-action="next">Weiter zu Präferenzen</button>
+        </div>
+        <div class="express-route-hint">
+          <button class="express-route-btn" data-action="express">
+            <span class="express-route-icon">✨</span>
+            <span class="express-route-text">
+              <strong>Express-Route</strong>
+              <span>KI erstellt sofort eine Route – ohne weitere Angaben</span>
+            </span>
+            <span class="express-route-arrow">→</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= STEP 2: PRÄFERENZEN ======= -->
+    <section id="step-2" class="step">
+      <div class="container">
+        <div class="step-header">
+          <div class="step-number">2</div>
+          <h2>Was interessiert dich?</h2>
+          <p>Gewichte deine Interessen – wir finden die perfekten Ziele für dich</p>
+        </div>
+
+        <div class="preferences-grid" id="preferences-container">
+          <!-- Wird dynamisch von preferences.js befüllt -->
+        </div>
+
+        <div class="step-nav">
+          <button class="btn btn-outline" data-action="prev">Zurück</button>
+          <button class="btn btn-primary" data-action="next">Weiter zur Kartenauswahl</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= STEP 3: MUST-SEE ======= -->
+    <section id="step-3" class="step">
+      <div class="container">
+        <div class="step-header">
+          <div class="step-number">3</div>
+          <h2>Wähle deine Must-Sees</h2>
+          <p>Pinne Ziele an, die unbedingt dabei sein müssen. Wir ergänzen den Rest.</p>
+        </div>
+
+        <div class="mustsee-info">
+          <span>📌</span>
+          <span><strong><span id="pin-counter">0</span> Ziele</strong> angepinnt. Klicke auf eine Karte oder einen Marker, um Pflicht-Stopps festzulegen.</span>
+          <button class="offbeat-top-toggle" id="offbeat-top-toggle" onclick="MapModule.toggleOffbeat()">
+            <span class="offbeat-top-icon" id="offbeat-top-icon">✦</span>
+            Off the Beaten Path
+          </button>
+        </div>
+
+        <div class="mustsee-layout">
+          <div class="mustsee-map-wrap">
+            <div id="mustsee-map"></div>
+          </div>
+          <div class="mustsee-grid" id="dest-grid">
+            <!-- Wird dynamisch von map.js befüllt -->
+          </div>
+        </div>
+
+        <!-- Zusätzliche Wünsche -->
+        <div class="additional-notes-wrap">
+          <label class="form-label" for="additional-notes">Noch etwas, das wir beachten sollen?</label>
+          <textarea class="form-input" id="additional-notes" rows="3"
+                    aria-label="Zusätzliche Hinweise für die Route"
+                    placeholder="z.B. Wir sind Vegetarier, wir möchten einen Kochkurs machen, bitte keine langen Busfahrten..."></textarea>
+          <div class="additional-notes-hint">Optional – hilft der KI, deine Route noch besser zu personalisieren.</div>
+        </div>
+
+        <div class="step-nav">
+          <button class="btn btn-outline" data-action="prev">Zurück</button>
+          <button class="btn btn-primary btn-lg" data-action="next">Route erstellen ✨</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= STEP 4: LOADING ======= -->
+    <section id="step-4" class="step">
+      <div class="container">
+        <div class="loading-screen">
+          <div class="loading-spinner"></div>
+          <div class="loading-text">
+            <h3>Deine Route wird erstellt...</h3>
+            <p>Unsere KI plant gerade die perfekte Reiseroute für dich</p>
+          </div>
+          <div class="loading-progress-wrap">
+            <div class="loading-phases" id="loading-phases">
+              <div class="loading-phase active" data-phase="0">
+                <span class="loading-phase-icon">📍</span>
+                <span class="loading-phase-text">Ziele analysieren</span>
+              </div>
+              <div class="loading-phase" data-phase="1">
+                <span class="loading-phase-icon">🗺️</span>
+                <span class="loading-phase-text">Route optimieren</span>
+              </div>
+              <div class="loading-phase" data-phase="2">
+                <span class="loading-phase-icon">📅</span>
+                <span class="loading-phase-text">Tagesplan erstellen</span>
+              </div>
+              <div class="loading-phase" data-phase="3">
+                <span class="loading-phase-icon">💡</span>
+                <span class="loading-phase-text">Tipps & Details</span>
+              </div>
+            </div>
+            <div class="loading-bar-track">
+              <div class="loading-bar-fill" id="loading-bar-fill"></div>
+            </div>
+            <div class="loading-timer" id="loading-timer">⏱ 0s</div>
+          </div>
+          <div class="loading-status" id="loading-status"></div>
+          <div class="loading-facts" id="loading-fact">
+            <strong>Wusstest du?</strong> Die KI plant gerade deine Route...
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ======= STEP 5: ERGEBNIS ======= -->
+    <section id="step-5" class="step">
+      <div class="container">
+
+        <!-- Route Header -->
+        <div id="result-header" class="result-header">
+          <!-- Wird dynamisch befüllt -->
+        </div>
+
+        <!-- Route Map -->
+        <div class="result-map-wrap">
+          <div id="result-map"></div>
+        </div>
+
+        <!-- Stop Pills -->
+        <div id="stop-pills" class="stop-pills">
+          <!-- Wird dynamisch befüllt -->
+        </div>
+
+        <!-- Stop Detail -->
+        <div id="stop-detail-container">
+          <!-- Wird dynamisch befüllt -->
+        </div>
+
+        <!-- Transport -->
+        <div id="transport-container">
+          <!-- Wird dynamisch befüllt -->
+        </div>
+
+        <!-- Budget -->
+        <div id="budget-container">
+          <!-- Wird dynamisch befüllt -->
+        </div>
+
+        <!-- Allgemeine Reise-Infos -->
+        <div id="travelinfo-container">
+          <!-- Wird dynamisch befüllt -->
+        </div>
+
+        <!-- Routenvorschläge -->
+        <div id="suggestions-container">
+          <!-- Wird dynamisch von suggestions.js + results.js befüllt -->
+        </div>
+
+        <!-- Route anpassen -->
+        <div id="route-adjust-container">
+          <!-- Wird dynamisch von results.js befüllt -->
+        </div>
+
+        <!-- Actions -->
+        <div class="result-actions">
+          <button class="btn btn-primary" onclick="window.print()">Route drucken / speichern</button>
+          <button class="btn btn-outline" data-action="restart">Neue Route planen</button>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ======= FOOTER ======= -->
+  <footer class="site-footer">
+    <div class="footer-content">
+      <span id="footer-brand"><img src="CI/logo-header.png" alt="NomadRoute" style="height: 40px; width: auto; vertical-align: middle;"></span>
+      <span>|</span>
+      <span id="footer-desc">Personalisierte Routenplanung für Individualreisen</span>
+      <span>|</span>
+      <span>Built with Gemini API</span>
+    </div>
+  </footer>
+
+  <!-- ======= API KEY MODAL ======= -->
+  <div id="apikey-modal" class="modal-backdrop">
+    <div class="modal">
+      <h3>Gemini API Key</h3>
+      <p>
+        Um Routen zu generieren, benötigst du einen kostenlosen Google Gemini API Key.
+        Du bekommst ihn unter <a href="https://aistudio.google.com/apikey" target="_blank" rel="noopener" style="color: var(--terracotta); text-decoration: underline;">aistudio.google.com</a>.
+      </p>
+      <div class="form-group" style="margin-bottom: 0;">
+        <input type="text" class="form-input" id="apikey-input"
+               aria-label="Gemini API Key eingeben"
+               placeholder="AIza...">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-outline btn-sm" onclick="App.closeApiKeyModal()">Abbrechen</button>
+        <button class="btn btn-primary btn-sm" onclick="App.saveApiKey()">Speichern & weiter</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= ERROR TOAST ======= -->
+  <div id="error-message" class="error-toast"></div>
+
+  <!-- ======= SCRIPTS ======= -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/lz-string@1.5.0/libs/lz-string.min.js"></script>
+  <script src="js/destinations.js"></script>
+  <script src="js/vietnam-destinations.js"></script>
+  <script src="js/japan-destinations.js"></script>
+  <script src="js/thailand-destinations.js"></script>
+  <script src="js/indonesia-destinations.js"></script>
+  <script src="js/countries.js"></script>
+  <script src="js/wiki.js"></script>
+  <script src="js/preferences.js"></script>
+  <script src="js/map.js"></script>
+  <script src="js/gemini.js"></script>
+  <script src="js/suggestions.js"></script>
+  <script src="js/results.js"></script>
+  <script src="js/app.js"></script>
+
+</body>
+</html>

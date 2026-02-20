@@ -1,0 +1,384 @@
+/* ============================================
+   RESPONSIVE.CSS – Media Queries
+   ============================================ */
+
+/* --- Tablet (≤1024px) --- */
+@media (max-width: 1024px) {
+  .hero h1 {
+    font-size: 2.2rem;
+  }
+
+  .country-selector {
+    grid-template-columns: repeat(3, 1fr);
+    max-width: 560px;
+  }
+
+  .country-card {
+    height: 180px;
+  }
+
+  .mustsee-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .mustsee-map-wrap {
+    position: relative;
+    top: 0;
+  }
+
+  #mustsee-map {
+    height: 350px;
+  }
+
+  .mustsee-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .basics-grid {
+    max-width: 100%;
+  }
+
+  .highlights-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+/* --- Mobile (≤768px) --- */
+@media (max-width: 768px) {
+  h1 { font-size: 2.2rem; }
+  h2 { font-size: 1.6rem; }
+  h3 { font-size: 1.25rem; }
+
+  .hero h1 {
+    font-size: 2rem;
+  }
+
+  .hero-subtitle {
+    font-size: 0.95rem;
+  }
+
+  .hero-logo img {
+    height: 110px;
+  }
+
+  .logo img {
+    height: 80px;
+  }
+
+  .logo-subtitle {
+    font-size: 0.6rem;
+  }
+
+  .loading-phase-text {
+    font-size: 0.6rem;
+  }
+
+  .loading-phase-icon {
+    font-size: 1rem;
+  }
+
+  .hero-features {
+    gap: var(--space-sm);
+  }
+
+  .country-selector {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 400px;
+  }
+
+  .country-card {
+    height: 160px;
+  }
+
+  .basics-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .radio-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .mustsee-grid {
+    grid-template-columns: 1fr;
+  }
+
+  #mustsee-map {
+    height: 280px;
+  }
+
+  #result-map {
+    height: 300px;
+  }
+
+  .result-stats {
+    gap: var(--space-lg);
+  }
+
+  .stop-hero-img {
+    height: 220px;
+  }
+
+  .stop-hero-label {
+    font-size: 1.4rem;
+  }
+
+  .highlight-card-img {
+    height: 120px;
+  }
+
+  .mustsee-info {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .offbeat-top-toggle {
+    align-self: stretch;
+    justify-content: center;
+  }
+
+  .stop-detail-header {
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .budget-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .travelinfo-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .highlights-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .tips-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .transport-leg {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-sm);
+  }
+
+  .transport-cities {
+    min-width: auto;
+  }
+
+  .step {
+    padding: var(--space-2xl) 0;
+  }
+
+  .modal {
+    padding: var(--space-xl);
+  }
+
+  .modal-actions {
+    flex-direction: column;
+  }
+
+  .step-nav {
+    flex-direction: column-reverse;
+    gap: var(--space-md);
+  }
+
+  .step-nav .btn {
+    width: 100%;
+  }
+
+  .step-nav .btn + .btn {
+    margin-left: 0;
+  }
+
+  /* Header/Footer mobile */
+  .site-header .container {
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+
+  .header-nav {
+    gap: var(--space-md);
+  }
+}
+
+/* --- Timeline, Connectors, Adjust, Share Mobile (≤768px) --- */
+@media (max-width: 768px) {
+  .stop-pill-tl {
+    padding: 6px 8px;
+  }
+
+  .stop-pill-tl-city {
+    font-size: 0.7rem;
+  }
+
+  .stop-pill-tl-nights {
+    font-size: 0.6rem;
+  }
+
+  .stop-connector {
+    min-width: 30px;
+  }
+
+  .stop-connector-label {
+    font-size: 0.6rem;
+  }
+
+  .route-adjust-section {
+    padding: var(--space-md);
+  }
+
+  .share-panel {
+    min-width: 160px;
+  }
+}
+
+/* --- Suggestions Mobile (≤768px) --- */
+@media (max-width: 768px) {
+  .suggestion-card {
+    flex-direction: column;
+  }
+
+  .suggestion-img-wrap {
+    width: 100%;
+    height: 160px;
+  }
+
+  .suggestion-footer {
+    flex-wrap: wrap;
+  }
+
+  .suggestions-section {
+    padding: var(--space-md);
+  }
+}
+
+/* --- Country Selector Mobile (≤768px) --- */
+/* Handled in main 768px block above */
+
+/* --- Small (≤480px) --- */
+@media (max-width: 480px) {
+  body {
+    font-size: 15px;
+  }
+
+  h1 { font-size: 1.8rem; }
+  h2 { font-size: 1.4rem; }
+
+  .hero-content {
+    padding: var(--space-2xl) var(--space-md);
+  }
+
+  .hero h1 {
+    font-size: 1.7rem;
+  }
+
+  .hero-logo img {
+    height: 85px;
+  }
+
+  .country-selector {
+    grid-template-columns: repeat(2, 1fr);
+    max-width: 100%;
+  }
+
+  .country-card {
+    height: 140px;
+  }
+
+  .country-card-name {
+    font-size: 1rem;
+  }
+
+  .hero-feature {
+    font-size: 0.75rem;
+  }
+
+  .hero-feature-sep {
+    font-size: 0.75rem;
+  }
+
+  .logo-subtitle {
+    display: none !important;
+  }
+
+  .container {
+    padding: 0 var(--space-md);
+  }
+
+  .radio-cards {
+    grid-template-columns: 1fr 1fr;
+    gap: var(--space-sm);
+  }
+
+  .radio-card {
+    padding: var(--space-sm);
+  }
+
+  .airport-cards {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .dest-card {
+    flex-direction: column;
+  }
+
+  .dest-card-img {
+    width: 100%;
+    height: 120px;
+  }
+
+  .btn-lg {
+    padding: 14px 28px;
+    font-size: 1rem;
+  }
+
+  .result-stats {
+    flex-wrap: wrap;
+    gap: var(--space-md);
+  }
+
+  .stop-pill-tl {
+    padding: 4px 6px;
+  }
+
+  .stop-pill-tl-city {
+    font-size: 0.65rem;
+  }
+
+  .stop-connector {
+    min-width: 24px;
+  }
+
+  .stop-connector-label {
+    font-size: 0.55rem;
+  }
+
+  .result-stat-value {
+    font-size: 1.2rem;
+  }
+
+  .suggestion-card {
+    padding: var(--space-md);
+  }
+
+  .suggestion-img-wrap {
+    height: 130px;
+  }
+
+  .suggestion-accept-btn {
+    width: 100%;
+  }
+
+  .suggestion-footer {
+    gap: var(--space-sm);
+  }
+
+  .share-panel {
+    left: auto;
+    right: 0;
+    transform: none;
+  }
+}
