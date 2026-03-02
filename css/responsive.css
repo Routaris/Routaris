@@ -9,8 +9,8 @@
   }
 
   .country-selector {
-    grid-template-columns: repeat(3, 1fr);
-    max-width: 560px;
+    max-width: 680px;
+    grid-template-columns: repeat(4, 1fr);
   }
 
   .country-card {
@@ -40,6 +40,15 @@
 
   .highlights-grid {
     grid-template-columns: 1fr 1fr;
+  }
+
+  /* Step container card responsive */
+  #step-1 > .container,
+  #step-2 > .container,
+  #step-3 > .container {
+    margin: 0 auto;
+    width: calc(100% - 2 * var(--space-md));
+    padding: var(--space-2xl) var(--space-lg);
   }
 }
 
@@ -82,8 +91,8 @@
   }
 
   .country-selector {
-    grid-template-columns: repeat(2, 1fr);
     max-width: 400px;
+    grid-template-columns: repeat(2, 1fr);
   }
 
   .country-card {
@@ -124,6 +133,34 @@
 
   .highlight-card-img {
     height: 120px;
+  }
+
+  /* Overview mobile */
+  .overview-journey {
+    padding-left: var(--space-md);
+  }
+
+  .overview-journey::before {
+    left: 18px;
+    width: 2px;
+  }
+
+  .overview-stop {
+    padding: var(--space-md);
+  }
+
+  .overview-stop-num {
+    width: 30px;
+    height: 30px;
+    font-size: 0.85rem;
+  }
+
+  .overview-stop-city {
+    font-size: 1.05rem;
+  }
+
+  .overview-stop-arrow {
+    display: none;
   }
 
   .mustsee-info {
@@ -168,12 +205,101 @@
     min-width: auto;
   }
 
+  .transport-booking-link {
+    text-align: center;
+  }
+
+  .booking-link-card {
+    padding: var(--space-sm) var(--space-md);
+  }
+
   .step {
     padding: var(--space-2xl) 0;
   }
 
+  /* Step container card mobile */
+  #step-1 > .container,
+  #step-2 > .container,
+  #step-3 > .container {
+    margin: 0;
+    width: 100%;
+    padding: var(--space-xl) var(--space-md);
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .preferences-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Mode/Pace cards mobile */
+  .mode-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .pace-cards {
+    grid-template-columns: 1fr;
+  }
+
+  /* Pin-Confirm Modal mobile */
+  .pin-confirm-options {
+    grid-template-columns: 1fr;
+  }
+
+  .pin-confirm-modal {
+    margin: var(--space-md);
+  }
+
+  /* Stop Navigation mobile */
+  .stop-nav {
+    flex-wrap: wrap;
+  }
+
+  .stop-nav-btn {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .stop-nav-prev,
+  .stop-nav-next {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .stop-nav-overview {
+    order: -1;
+    width: 100%;
+    text-align: center;
+  }
+
+  /* Icon-Kreise und Pref-Icons Mobile */
+  .radio-card-icon {
+    width: 40px;
+    height: 40px;
+    font-size: 1.3rem;
+  }
+
+  .pref-icon {
+    width: 28px;
+    height: 28px;
+    font-size: 1rem;
+  }
+
   .modal {
     padding: var(--space-xl);
+  }
+
+  .about-modal {
+    max-height: 90vh;
+    width: 95%;
+    padding: 0;
+  }
+
+  .about-modal-header {
+    padding: var(--space-xl) var(--space-lg) var(--space-md);
+  }
+
+  .about-modal-body {
+    padding: var(--space-lg);
   }
 
   .modal-actions {
@@ -194,13 +320,20 @@
   }
 
   /* Header/Footer mobile */
+  .site-header {
+    padding: 0 var(--space-md);
+  }
+
   .site-header .container {
-    flex-direction: column;
     gap: var(--space-sm);
   }
 
   .header-nav {
     gap: var(--space-md);
+  }
+
+  .header-nav a {
+    font-size: 0.78rem;
   }
 }
 
@@ -280,8 +413,9 @@
   }
 
   .country-selector {
-    grid-template-columns: repeat(2, 1fr);
     max-width: 100%;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-sm);
   }
 
   .country-card {
@@ -317,6 +451,24 @@
     padding: var(--space-sm);
   }
 
+  /* Icon-Kreise und Pref-Icons Small */
+  .radio-card-icon {
+    width: 36px;
+    height: 36px;
+    font-size: 1.2rem;
+  }
+
+  .pref-icon {
+    width: 24px;
+    height: 24px;
+    font-size: 0.9rem;
+  }
+
+  .form-label::before {
+    width: 3px;
+    height: 12px;
+  }
+
   .airport-cards {
     grid-template-columns: 1fr 1fr;
   }
@@ -340,12 +492,31 @@
     gap: var(--space-md);
   }
 
+  /* Overview small */
+  .overview-stats {
+    gap: var(--space-xs);
+  }
+
+  .overview-stat {
+    font-size: 0.75rem;
+    padding: 4px 10px;
+  }
+
+  .overview-stop-highlights span {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+  }
+
+  .overview-intro-text {
+    font-size: 0.85rem;
+  }
+
   .stop-pill-tl {
     padding: 4px 6px;
   }
 
   .stop-pill-tl-city {
-    font-size: 0.65rem;
+    font-size: 0.72rem;
   }
 
   .stop-connector {
@@ -353,7 +524,7 @@
   }
 
   .stop-connector-label {
-    font-size: 0.55rem;
+    font-size: 0.62rem;
   }
 
   .result-stat-value {

@@ -12,7 +12,15 @@ const Results = {
    * Behandelt Varianten die Gemini zurückgeben kann (ferry, fast_boat, shuttle, car, combined modes etc.)
    */
   normalizeLegMode(mode) {
-    if (!mode) return 'train';
+    // Country-aware Default: Wenn das Land kein Zugnetz hat, fallback auf ersten legMode
+    const defaultMode = (() => {
+      const cc = typeof CountryConfig !== 'undefined' && CountryConfig.current;
+      if (cc && cc.legModes && !cc.legModes.includes('train')) {
+        return cc.legModes.split('|')[0]; // z.B. 'car' für Namibia
+      }
+      return 'train';
+    })();
+    if (!mode) return defaultMode;
     const m = mode.toLowerCase().trim();
     // Kombinierte Modi (z.B. "bus_then_boat") → ersten Teil nehmen
     if (m.includes('_then_') || m.includes(' then ')) {
@@ -25,13 +33,15 @@ const Results = {
     if (m.includes('boat') || m.includes('ferry') || m.includes('fähre') || m.includes('faehre') || m.includes('speedboat') || m.includes('schiff') || m.includes('fähre')) return 'boat';
     // Sleeper Bus (vor Bus prüfen!)
     if (m.includes('sleeper')) return 'sleeper_bus';
+    // Car / Self-Drive (vor Bus prüfen, da 'minivan' sonst zu Bus geht)
+    if (m.includes('car') || m.includes('drive') || m.includes('4x4') || m.includes('mietwagen') || m.includes('rental') || m.includes('self') || m.includes('camper')) return 'car';
     // Bus / Ground transport
-    if (m.includes('bus') || m.includes('shuttle') || m.includes('minivan') || m.includes('van') || m.includes('taxi') || m.includes('car') || m.includes('driver') || m.includes('wagen') || m.includes('private')) return 'bus';
+    if (m.includes('bus') || m.includes('shuttle') || m.includes('minivan') || m.includes('van') || m.includes('taxi') || m.includes('driver') || m.includes('wagen') || m.includes('private')) return 'bus';
     // Motorbike
     if (m.includes('motorbike') || m.includes('motorcycle') || m.includes('scooter') || m.includes('roller') || m.includes('moto')) return 'motorbike';
     // Train
     if (m.includes('train') || m.includes('zug') || m.includes('rail') || m.includes('shinkansen') || m.includes('whoosh') || m.includes('hsr') || m.includes('express')) return 'train';
-    return 'train';
+    return defaultMode;
   },
 
   /**
@@ -39,7 +49,7 @@ const Results = {
    */
   matchCity(a, b) {
     if (!a || !b) return false;
-    const normalize = s => s.toLowerCase().replace(/[-''`]/g, ' ').replace(/\s+/g, ' ').trim();
+    const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[-''`]/g, ' ').replace(/\s+/g, ' ').trim();
     const na = normalize(a);
     const nb = normalize(b);
     const firstA = na.split(/[\s\/,]+/)[0];
@@ -64,14 +74,21 @@ const Results = {
    */
   render(result, readOnly = false) {
     App.state.result = result;
-    this.activeStop = 0;
+    this.activeStop = -1;
     this._readOnly = readOnly;
 
     this.renderHeader(result);
     this.renderStopPills(result.stops, result.legs);
-    this.renderStopDetail(result.stops[0], 0);
-    this.renderTransport(result.legs, 0);
+    this.renderOverview(result);
+
+    // Stop detail + transport initially empty (overview shown)
+    const detailEl = document.getElementById('stop-detail-container');
+    if (detailEl) detailEl.innerHTML = '';
+    const transportEl = document.getElementById('transport-container');
+    if (transportEl) transportEl.innerHTML = '';
+
     this.renderBudget(result.budget);
+    this.renderBookingLinks();
     this.renderTravelInfo(result.travelInfo);
 
     if (!readOnly) {
@@ -149,7 +166,8 @@ const Results = {
       bus: 'Busfahrten',
       flight: 'Flüge',
       boat: 'Bootsfahrten',
-      motorbike: 'Motorrad'
+      motorbike: 'Motorrad',
+      car: 'Fahrten'
     };
     return Object.entries(counts).map(([mode, count]) => `
       <div class="result-stat">
@@ -190,6 +208,17 @@ const Results = {
     this.markers = [];
     const latlngs = [];
 
+    // CSS-Variablen für Kartenfarben auslesen
+    const cs = getComputedStyle(document.documentElement);
+    const cv = (n) => cs.getPropertyValue(n).trim();
+    const C = {
+      terracotta: cv('--terracotta'),
+      teal: cv('--teal'),
+      ink: cv('--ink'),
+      inkMuted: cv('--ink-muted'),
+      gold: cv('--car')
+    };
+
     // Prüfen ob erster und letzter Stopp dieselbe Stadt sind
     const lastIdx = result.stops.length - 1;
     const firstStop = result.stops[0];
@@ -207,7 +236,7 @@ const Results = {
           className: 'result-marker',
           html: `<div style="
             display: flex; align-items: center; gap: 2px;
-            background: #c4654a;
+            background: var(--terracotta);
             border-radius: 16px;
             padding: 0 10px;
             height: 30px;
@@ -248,7 +277,7 @@ const Results = {
           className: 'result-marker',
           html: `<div style="
             width: 30px; height: 30px;
-            background: ${isFirst ? '#2a7c76' : isLast ? '#18170f' : '#c4654a'};
+            background: ${isFirst ? C.teal : isLast ? C.ink : C.terracotta};
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -283,7 +312,7 @@ const Results = {
     const addLegBadge = (fromStop, toStop, leg) => {
       const midLat = (fromStop.lat + toStop.lat) / 2;
       const midLng = (fromStop.lng + toStop.lng) / 2;
-      const badgeIcons = { train: '🚄', flight: '✈️', bus: '🚌', sleeper_bus: '🚌', boat: '⛴️', motorbike: '🏍️' };
+      const badgeIcons = { train: '🚄', flight: '✈️', bus: '🚌', sleeper_bus: '🚌', boat: '⛴️', motorbike: '🏍️', car: '🚙' };
       const mode = Results.normalizeLegMode(leg.mode);
       const icon = badgeIcons[mode] || '🚄';
       const badge = L.marker([midLat, midLng], {
@@ -310,13 +339,15 @@ const Results = {
         const legMode = Results.normalizeLegMode(leg.mode);
         const isFlightLeg = legMode === 'flight';
         const isBusLeg = legMode === 'bus' || legMode === 'sleeper_bus';
+        const isBoatLeg = legMode === 'boat';
+        const isCarLeg = legMode === 'car';
         L.polyline(
           [[fromStop.lat, fromStop.lng], [toStop.lat, toStop.lng]],
           {
-            color: isFlightLeg ? '#c4654a' : isBusLeg ? '#2a7c76' : '#c4654a',
+            color: isFlightLeg ? C.terracotta : isCarLeg ? C.gold : (isBusLeg || isBoatLeg) ? C.teal : C.terracotta,
             weight: 3,
             opacity: isFlightLeg ? 0.5 : 0.6,
-            dashArray: isFlightLeg ? '8, 8' : isBusLeg ? '5, 5' : null
+            dashArray: isFlightLeg ? '8, 8' : isBusLeg ? '5, 5' : isBoatLeg ? '4, 6' : isCarLeg ? null : null
           }
         ).addTo(this.map);
 
@@ -333,7 +364,7 @@ const Results = {
       if (!drawnPairs.has(pairKey)) {
         L.polyline(
           [[a.lat, a.lng], [b.lat, b.lng]],
-          { color: '#8a8878', weight: 1.5, opacity: 0.4, dashArray: '6, 6' }
+          { color: C.inkMuted, weight: 1.5, opacity: 0.4, dashArray: '6, 6' }
         ).addTo(this.map);
       }
     }
@@ -358,18 +389,25 @@ const Results = {
     // Prüfe ob Start == Ende (Rundreise)
     const isRoundTrip = lastI > 0 && this.matchCity(stops[0].city, stops[lastI].city);
 
-    let html = '';
+    let html = `
+      <button class="stop-pill-tl stop-pill-overview active" onclick="Results.showOverview()">
+        <span class="stop-pill-tl-dot dot-overview"></span>
+        <span class="stop-pill-tl-city">Übersicht</span>
+      </button>
+      <div class="stop-connector">
+        <span class="stop-connector-line"></span>
+      </div>
+    `;
 
     stops.forEach((stop, i) => {
       const isFirst = i === 0;
       const isLast = i === lastI;
-      const isActive = i === 0;
       const dotClass = isFirst ? 'dot-start' : isLast ? 'dot-end' : '';
-      const activeClass = isActive ? 'active' : '';
+      const isActive = i === this.activeStop;
       const returnIcon = (isLast && isRoundTrip) ? ' ✈' : '';
 
       html += `
-        <button class="stop-pill-tl ${activeClass}" data-stop="${i}" onclick="Results.selectStop(${i})">
+        <button class="stop-pill-tl${isActive ? ' active' : ''}" data-stop="${i}" onclick="Results.selectStop(${i})">
           <span class="stop-pill-tl-dot ${dotClass}"></span>
           <span class="stop-pill-tl-city">${stop.city}${returnIcon}</span>
           <span class="stop-pill-tl-nights">${stop.nights}N</span>
@@ -379,7 +417,7 @@ const Results = {
       if (i < lastI) {
         const leg = this.findLeg(legs, stop.city, stops[i + 1].city);
         if (leg) {
-          const connectorIcons = { train: '🚄', flight: '✈️', bus: '🚌', sleeper_bus: '🚌', boat: '⛴️', motorbike: '🏍️' };
+          const connectorIcons = { train: '🚄', flight: '✈️', bus: '🚌', sleeper_bus: '🚌', boat: '⛴️', motorbike: '🏍️', car: '🚙' };
           const mode = this.normalizeLegMode(leg.mode);
           const icon = connectorIcons[mode] || '🚄';
           html += `<div class="stop-connector stop-connector-${mode}">
@@ -396,6 +434,28 @@ const Results = {
     });
 
     container.innerHTML = html;
+
+    // Scroll-Indikatoren für lange Timelines
+    this.initPillsScroll(container);
+  },
+
+  /**
+   * Initialisiert Scroll-Fade-Indikatoren für Stop-Pills
+   */
+  initPillsScroll(pills) {
+    const wrap = pills.parentElement;
+    if (!wrap || !wrap.classList.contains('stop-pills-wrap')) return;
+
+    const update = () => {
+      const canScrollLeft = pills.scrollLeft > 8;
+      const canScrollRight = pills.scrollLeft < pills.scrollWidth - pills.clientWidth - 8;
+      wrap.classList.toggle('scroll-left', canScrollLeft);
+      wrap.classList.toggle('scroll-right', canScrollRight);
+    };
+
+    pills.addEventListener('scroll', update, { passive: true });
+    // Initial check nach Render
+    requestAnimationFrame(update);
   },
 
   /**
@@ -407,9 +467,13 @@ const Results = {
 
     this.activeStop = index;
 
-    // Pill aktiv setzen
+    // Hide overview
+    const overview = document.getElementById('route-overview');
+    if (overview) overview.style.display = 'none';
+
+    // Pill aktiv setzen (+1 weil Overview-Pill an Index 0)
     document.querySelectorAll('.stop-pill-tl').forEach((pill, i) => {
-      pill.classList.toggle('active', i === index);
+      pill.classList.toggle('active', i === index + 1);
     });
 
     // Detail rendern
@@ -428,6 +492,112 @@ const Results = {
     const detail = document.getElementById('stop-detail-container');
     if (detail) {
       detail.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  },
+
+  /**
+   * Rendert die Routenübersicht mit allen Stopps und Transportverbindungen
+   */
+  renderOverview(result) {
+    const container = document.getElementById('route-overview');
+    if (!container) return;
+
+    container.style.display = '';
+    const cc = CountryConfig.current;
+    const brandEmoji = cc ? cc.brandEmoji : '🧭';
+
+    let html = `
+      <div class="overview-intro">
+        <h3>${brandEmoji} Deine Reise auf einen Blick</h3>
+      </div>
+      <div class="overview-journey">
+    `;
+
+    result.stops.forEach((stop, i) => {
+      let startDay = 1;
+      for (let j = 0; j < i; j++) startDay += result.stops[j].nights;
+
+      const isFirst = i === 0;
+      const isLast = i === result.stops.length - 1;
+      const topHighlights = (stop.highlights || []).slice(0, 3);
+
+      html += `
+        <div class="overview-stop${isFirst ? ' overview-stop-first' : ''}${isLast ? ' overview-stop-last' : ''}" onclick="Results.selectStop(${i})">
+          <div class="overview-stop-num">${i + 1}</div>
+          <div class="overview-stop-body">
+            <div class="overview-stop-city">${stop.city}</div>
+            <div class="overview-stop-meta">🌙 ${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'} · Tag ${startDay}–${startDay + stop.nights - 1}</div>
+            ${stop.tagline ? `<p class="overview-stop-tagline">${stop.tagline}</p>` : ''}
+            ${topHighlights.length ? `
+              <div class="overview-stop-highlights">
+                ${topHighlights.map(h => `<span>${h.icon || '📍'} ${h.title}</span>`).join('')}
+              </div>
+            ` : ''}
+          </div>
+          <div class="overview-stop-arrow">→</div>
+        </div>
+      `;
+
+      // Transport-Leg nach diesem Stop
+      if (i < result.stops.length - 1) {
+        const leg = this.findLeg(result.legs, stop.city, result.stops[i + 1].city);
+        if (leg) {
+          const modeIcons = { train: '🚄', flight: '✈️', bus: '🚌', sleeper_bus: '🚌', boat: '⛴️', motorbike: '🏍️', car: '🚙' };
+          const modeLabels = { train: 'Zug', flight: 'Flug', bus: 'Bus', sleeper_bus: 'Schlafbus', boat: 'Boot', motorbike: 'Motorrad', car: 'Auto' };
+          const mode = this.normalizeLegMode(leg.mode);
+          const icon = modeIcons[mode] || '🚄';
+          const label = modeLabels[mode] || 'Zug';
+          html += `
+            <div class="overview-leg overview-leg-${mode}">
+              <span class="overview-leg-icon">${icon}</span>
+              <span>${label} · ${leg.duration} · ${leg.cost}</span>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="overview-leg">
+              <span class="overview-leg-icon">➜</span>
+              <span>Transfer</span>
+            </div>
+          `;
+        }
+      }
+    });
+
+    html += '</div>';
+    container.innerHTML = html;
+  },
+
+  /**
+   * Zeigt die Routenübersicht (zurück aus der Detail-Ansicht)
+   */
+  showOverview() {
+    const overview = document.getElementById('route-overview');
+    if (overview) overview.style.display = '';
+
+    const detail = document.getElementById('stop-detail-container');
+    if (detail) detail.innerHTML = '';
+
+    const transport = document.getElementById('transport-container');
+    if (transport) transport.innerHTML = '';
+
+    // Übersicht-Pill aktivieren, Stopps deaktivieren
+    document.querySelectorAll('.stop-pill-tl').forEach(p => p.classList.remove('active'));
+    const overviewPill = document.querySelector('.stop-pill-overview');
+    if (overviewPill) overviewPill.classList.add('active');
+
+    this.activeStop = -1;
+
+    // Karte auf gesamte Route zurücksetzen
+    const result = App.state.result;
+    if (this.map && result && result.stops.length > 1) {
+      const latlngs = result.stops.map(s => [s.lat, s.lng]);
+      this.map.fitBounds(L.latLngBounds(latlngs).pad(0.15));
+    }
+
+    // Zur Übersicht scrollen
+    if (overview) {
+      overview.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   },
 
@@ -506,6 +676,35 @@ const Results = {
             </div>
           </div>
         ` : ''}
+
+        <!-- Familien-Check Panel -->
+        ${(() => {
+          if (App.state.group !== 'family' || !App.state.childAge) return '';
+          const dest = Family.findDestByCity(stop.city);
+          return Family.renderDetailPanel(dest, App.state.childAge);
+        })()}
+
+        <!-- Stopp-Navigation -->
+        ${(() => {
+          const total = result.stops.length;
+          const prevStop = index > 0 ? result.stops[index - 1] : null;
+          const nextStop = index < total - 1 ? result.stops[index + 1] : null;
+          return `
+            <div class="stop-nav">
+              ${prevStop ? `<button class="stop-nav-btn stop-nav-prev" onclick="Results.selectStop(${index - 1})">
+                <span class="stop-nav-dir">← Vorheriger Stopp</span>
+                <span class="stop-nav-city">${prevStop.city}</span>
+              </button>` : '<div></div>'}
+              <button class="stop-nav-btn stop-nav-overview" onclick="Results.showOverview()">
+                <span class="stop-nav-dir">Übersicht</span>
+              </button>
+              ${nextStop ? `<button class="stop-nav-btn stop-nav-next" onclick="Results.selectStop(${index + 1})">
+                <span class="stop-nav-dir">Nächster Stopp →</span>
+                <span class="stop-nav-city">${nextStop.city}</span>
+              </button>` : '<div></div>'}
+            </div>
+          `;
+        })()}
       </div>
     `;
 
@@ -520,12 +719,15 @@ const Results = {
     // Hero-Bild: wiki-Feld vom Stopp nutzen, dann Destinations-Match, dann Stadtname
     let wikiTitle = stop.wiki;
     if (!wikiTitle) {
+      const stripAccents = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
       const dests = CountryConfig.getDestinations();
-      const dest = dests.find(d =>
-        stop.city.toLowerCase().includes(d.name.split('/')[0].trim().toLowerCase()) ||
-        d.name.split('/')[0].trim().toLowerCase().includes(stop.city.toLowerCase()) ||
-        (d.altName && stop.city.toLowerCase().includes(d.altName.toLowerCase()))
-      );
+      const cityNorm = stripAccents(stop.city);
+      const dest = dests.find(d => {
+        const nameNorm = stripAccents(d.name.split('/')[0].trim());
+        return cityNorm.includes(nameNorm) ||
+          nameNorm.includes(cityNorm) ||
+          (d.altName && cityNorm.includes(stripAccents(d.altName)));
+      });
       wikiTitle = dest ? dest.wiki : stop.city;
     }
 
@@ -593,7 +795,8 @@ const Results = {
               bus: { icon: '🚌', label: 'Bus' },
               sleeper_bus: { icon: '🚌', label: 'Schlafbus' },
               boat: { icon: '⛴️', label: 'Boot' },
-              motorbike: { icon: '🏍️', label: 'Motorrad' }
+              motorbike: { icon: '🏍️', label: 'Motorrad' },
+              car: { icon: '🚙', label: 'Auto' }
             };
             const mode = this.normalizeLegMode(leg.mode);
             const m = modeLabels[mode] || modeLabels.train;
@@ -609,8 +812,57 @@ const Results = {
                 <span>⏱ ${leg.duration}</span>
                 <span>💰 ${leg.cost}</span>
               </div>
+              ${this.renderTransportBookingLink(mode)}
             </div>`;
           }).join('')}
+        </div>
+      </div>
+    `;
+  },
+
+  /**
+   * Rendert einen Booking-Link für ein Transport-Leg
+   */
+  renderTransportBookingLink(mode) {
+    const cc = typeof CountryConfig !== 'undefined' && CountryConfig.current;
+    if (!cc || !cc.bookingLinks || !cc.bookingLinks.transport) return '';
+
+    // Fallback: sleeper_bus → bus
+    let link = cc.bookingLinks.transport[mode];
+    if (!link && mode === 'sleeper_bus') link = cc.bookingLinks.transport['bus'];
+    if (!link) return '';
+
+    return `<a href="${link.url}" target="_blank" rel="noopener noreferrer" class="transport-booking-link">${link.icon} Tickets suchen auf ${link.name} →</a>`;
+  },
+
+  /**
+   * Rendert die Buchungsseiten-Sektion
+   */
+  renderBookingLinks() {
+    const container = document.getElementById('booking-links-container');
+    if (!container) return;
+
+    const cc = typeof CountryConfig !== 'undefined' && CountryConfig.current;
+    if (!cc || !cc.bookingLinks || !cc.bookingLinks.general || !cc.bookingLinks.general.length) {
+      container.innerHTML = '';
+      return;
+    }
+
+    container.innerHTML = `
+      <div class="booking-links-section">
+        <h4>Nützliche Buchungsseiten</h4>
+        <p class="booking-links-subtitle">Empfohlene Plattformen für ${cc.name}</p>
+        <div class="booking-links-grid">
+          ${cc.bookingLinks.general.map(link => `
+            <a href="${link.url}" target="_blank" rel="noopener noreferrer" class="booking-link-card">
+              <span class="booking-link-icon">${link.icon}</span>
+              <div class="booking-link-info">
+                <span class="booking-link-name">${link.name}</span>
+                <span class="booking-link-label">${link.label}</span>
+              </div>
+              <span class="booking-link-arrow">→</span>
+            </a>
+          `).join('')}
         </div>
       </div>
     `;
@@ -728,8 +980,8 @@ const Results = {
       </div>
     `;
 
-    // Bilder asynchron laden
-    suggestions.forEach(async (s, i) => {
+    // Bilder asynchron laden (parallel, aber sicher)
+    Promise.allSettled(suggestions.map(async (s, i) => {
       const url = await Wiki.getThumbnail(s.dest.wiki);
       const imgEl = document.getElementById(`suggestion-img-${i}`);
       if (url && imgEl) {
@@ -738,7 +990,7 @@ const Results = {
       } else if (imgEl) {
         imgEl.parentElement.classList.add('no-image');
       }
-    });
+    }));
   },
 
   /**
@@ -795,14 +1047,19 @@ const Results = {
       `${i + 1}. ${s.city} (${s.nights} ${s.nights === 1 ? 'Nacht' : 'Nächte'})`
     ).join('\n');
 
-    const trains = result.legs ? result.legs.filter(l => l.mode === 'train').length : 0;
-    const flights = result.legs ? result.legs.filter(l => l.mode === 'flight').length : 0;
-    const buses = result.legs ? result.legs.filter(l => l.mode === 'bus' || l.mode === 'sleeper_bus').length : 0;
+    const legModes = result.legs ? result.legs.map(l => this.normalizeLegMode(l.mode)) : [];
+    const trains = legModes.filter(m => m === 'train').length;
+    const flights = legModes.filter(m => m === 'flight').length;
+    const buses = legModes.filter(m => m === 'bus' || m === 'sleeper_bus').length;
+    const boats = legModes.filter(m => m === 'boat').length;
+    const cars = legModes.filter(m => m === 'car').length;
 
     const transportParts = [];
     if (trains > 0) transportParts.push(`🚄 ${trains} Zugfahrten`);
     if (buses > 0) transportParts.push(`🚌 ${buses} Busfahrten`);
+    if (cars > 0) transportParts.push(`🚙 ${cars} Autofahrten`);
     if (flights > 0) transportParts.push(`✈️ ${flights} Flüge`);
+    if (boats > 0) transportParts.push(`⛴️ ${boats} Bootsfahrten`);
     transportParts.push(`🌙 ${result.totalNights} Nächte`);
 
     return [
@@ -818,9 +1075,6 @@ const Results = {
     ].join('\n');
   },
 
-  /**
-   * Rendert Share-Buttons in den result-actions Bereich
-   */
   /**
    * Erzeugt eine teilbare URL mit komprimierter Route im Hash
    */
@@ -847,13 +1101,14 @@ const Results = {
 
     try {
       await navigator.clipboard.writeText(url);
-      const btn = document.querySelector('.share-btn[onclick*="copyShareLink"]');
+      const btn = document.querySelector('.share-copy-btn');
       if (btn) {
-        const label = btn.querySelector('.share-btn-label');
-        if (label) {
-          label.textContent = 'Kopiert!';
-          setTimeout(() => { label.textContent = 'Link kopieren'; }, 2000);
-        }
+        btn.classList.add('copied');
+        btn.innerHTML = '<span class="share-copy-icon">✓</span> Kopiert!';
+        setTimeout(() => {
+          btn.classList.remove('copied');
+          btn.innerHTML = '<span class="share-copy-icon">🔗</span> Link kopieren';
+        }, 2500);
       }
     } catch (e) {
       prompt('Link kopieren:', url);
@@ -882,6 +1137,9 @@ const Results = {
     const wrapper = document.createElement('div');
     wrapper.className = 'share-wrapper';
     wrapper.innerHTML = `
+      <button class="btn btn-outline share-copy-btn" onclick="Results.copyShareLink()">
+        <span class="share-copy-icon">🔗</span> Link kopieren
+      </button>
       <button class="btn btn-outline share-toggle-btn" onclick="Results.toggleSharePanel()">
         Route teilen
       </button>
@@ -892,10 +1150,6 @@ const Results = {
             <span class="share-btn-label">Teilen</span>
           </button>
         ` : ''}
-        <button class="share-btn" onclick="Results.copyShareLink()" title="Route-Link kopieren">
-          <span class="share-btn-icon">🔗</span>
-          <span class="share-btn-label">Link kopieren</span>
-        </button>
         <button class="share-btn" onclick="Results.copyShareText()" title="Text kopieren">
           <span class="share-btn-icon">📋</span>
           <span class="share-btn-label">Text kopieren</span>
@@ -964,6 +1218,89 @@ const Results = {
   },
 
   /**
+   * Druckt die komplette Route mit allen Stopps
+   */
+  printRoute() {
+    const result = App.state.result;
+    if (!result) return;
+
+    // Print-Container erstellen oder wiederverwenden
+    let container = document.getElementById('print-all-stops');
+    if (!container) {
+      container = document.createElement('div');
+      container.id = 'print-all-stops';
+      const step5Container = document.querySelector('#step-5 > .container');
+      if (step5Container) step5Container.appendChild(container);
+    }
+
+    const cc = CountryConfig.current;
+    const brandName = cc ? cc.brandName : 'NomadRoute';
+    const brandEmoji = cc ? cc.brandEmoji : '🧭';
+
+    // Route-Header
+    let html = `
+      <div class="print-route-header">
+        <h2>${brandEmoji} ${result.routeName}</h2>
+        <p>${result.routeDescription}</p>
+        <div class="print-stats">
+          <span><strong>${result.totalNights}</strong> Nächte</span>
+          <span><strong>${result.stops.length}</strong> Stopps</span>
+        </div>
+      </div>
+    `;
+
+    // Alle Stopps mit Transport-Legs dazwischen
+    result.stops.forEach((stop, i) => {
+      let startDay = 1;
+      for (let j = 0; j < i; j++) startDay += result.stops[j].nights;
+
+      // Transport-Leg VOR diesem Stop
+      if (i > 0) {
+        const leg = this.findLeg(result.legs, result.stops[i - 1].city, stop.city);
+        if (leg) {
+          const modeLabels = { train: '🚄 Zug', flight: '✈️ Flug', bus: '🚌 Bus', sleeper_bus: '🚌 Schlafbus', boat: '⛴️ Boot', motorbike: '🏍️ Motorrad', car: '🚙 Auto' };
+          const mode = this.normalizeLegMode(leg.mode);
+          const label = modeLabels[mode] || '🚄 Zug';
+          html += `<div class="print-transport">${label}: ${leg.from} → ${leg.to} (${leg.duration}, ${leg.cost})</div>`;
+        }
+      }
+
+      html += `
+        <div class="print-stop">
+          <div class="print-stop-header">
+            <span class="print-stop-num">${i + 1}</span>
+            <span class="print-stop-city">${stop.city}</span>
+            <span class="print-stop-nights">— ${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'} (Tag ${startDay}–${startDay + stop.nights - 1})</span>
+          </div>
+          ${stop.tagline ? `<div class="print-stop-tagline">${stop.tagline}</div>` : ''}
+
+          ${stop.highlights && stop.highlights.length ? `
+            <div class="print-section-title">Highlights</div>
+            ${stop.highlights.map(h => `
+              <div class="print-highlight">${h.icon || '📍'} <strong>${h.title}</strong> — ${h.description}</div>
+            `).join('')}
+          ` : ''}
+
+          ${stop.dailyPlan && stop.dailyPlan.length ? `
+            <div class="print-section-title">Tagesplan</div>
+            ${stop.dailyPlan.map(d => `
+              <div class="print-day"><strong>Tag ${startDay + d.day - 1}: ${d.title}</strong> — ${d.activities}</div>
+            `).join('')}
+          ` : ''}
+
+          ${stop.tips && stop.tips.length ? `
+            <div class="print-section-title">Tipps</div>
+            ${stop.tips.map(t => `<div class="print-tip">${t.icon || '💡'} ${t.text}</div>`).join('')}
+          ` : ''}
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+    window.print();
+  },
+
+  /**
    * Cleanup
    */
   destroy() {
@@ -972,9 +1309,13 @@ const Results = {
       this.map = null;
       this.markers = [];
     }
+    const overviewEl = document.getElementById('route-overview');
+    if (overviewEl) overviewEl.innerHTML = '';
     const suggestionsEl = document.getElementById('suggestions-container');
     if (suggestionsEl) suggestionsEl.innerHTML = '';
     const adjustEl = document.getElementById('route-adjust-container');
     if (adjustEl) adjustEl.innerHTML = '';
+    const printEl = document.getElementById('print-all-stops');
+    if (printEl) printEl.remove();
   }
 };

@@ -29,6 +29,9 @@ const App = {
     },
     pinnedCities: [],
     additionalNotes: '',
+    routeMode: 'custom',       // 'custom' | 'inspired'
+    travelPace: 'balanced',    // 'fast' | 'balanced' | 'slow'
+    strictPins: false,         // true = NUR gepinnte Orte, keine KI-Ergänzungen
     result: null
   },
 
@@ -40,6 +43,7 @@ const App = {
   init() {
     this.bindNavigation();
     this.bindBasicsForm();
+    this.initFavorites();
 
     // Geteilte Route im URL-Hash erkennen
     if (this.loadSharedRoute()) return;
@@ -47,6 +51,67 @@ const App = {
     this.showStep(0);
     this.updateProgressDots();
   },
+
+  /**
+   * Initialisiert die Favoriten-Hearts auf Country-Cards
+   */
+  initFavorites() {
+    const favs = this.getFavorites();
+
+    document.querySelectorAll('.country-card').forEach(card => {
+      const countryId = card.dataset.country;
+      if (!countryId) return;
+
+      const heartBtn = document.createElement('button');
+      heartBtn.className = 'country-card-fav' + (favs.includes(countryId) ? ' active' : '');
+      heartBtn.setAttribute('aria-label', 'Favorit');
+      heartBtn.innerHTML = favs.includes(countryId) ? '❤️' : '🤍';
+      heartBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleFavorite(countryId, heartBtn);
+      });
+      card.appendChild(heartBtn);
+    });
+
+    // Favoriten nach oben sortieren
+    this.sortCountryCardsByFavorites();
+  },
+
+  getFavorites() {
+    try {
+      return JSON.parse(localStorage.getItem('nomadroute-favorites') || '[]');
+    } catch { return []; }
+  },
+
+  toggleFavorite(countryId, btn) {
+    let favs = this.getFavorites();
+    const idx = favs.indexOf(countryId);
+    if (idx > -1) {
+      favs.splice(idx, 1);
+      btn.classList.remove('active');
+      btn.innerHTML = '🤍';
+    } else {
+      favs.push(countryId);
+      btn.classList.add('active');
+      btn.innerHTML = '❤️';
+    }
+    localStorage.setItem('nomadroute-favorites', JSON.stringify(favs));
+    this.sortCountryCardsByFavorites();
+  },
+
+  sortCountryCardsByFavorites() {
+    const grid = document.getElementById('country-selector');
+    if (!grid) return;
+    const favs = this.getFavorites();
+    const cards = [...grid.querySelectorAll('.country-card')];
+    cards.sort((a, b) => {
+      const aFav = favs.includes(a.dataset.country) ? 0 : 1;
+      const bFav = favs.includes(b.dataset.country) ? 0 : 1;
+      return aFav - bFav;
+    });
+    cards.forEach(c => grid.appendChild(c));
+  },
+
 
   /**
    * Prüft ob ein geteilter Routen-Link im URL-Hash existiert
@@ -88,8 +153,6 @@ const App = {
       if (progressBar) progressBar.style.display = 'none';
 
       // Header anpassen
-      const apiKeyLink = document.querySelector('.header-nav a[onclick*="showApiKeyModal"]');
-      if (apiKeyLink) apiKeyLink.style.display = 'none';
       const restartLink = document.querySelector('.header-nav a[onclick*="restart"]');
       if (restartLink) restartLink.textContent = 'Eigene Route planen';
 
@@ -130,6 +193,18 @@ const App = {
     this.renderAirports(cc);
     this.renderTransportCards(cc);
 
+    // Initiale Slider-Fills setzen
+    const daysSlider = document.getElementById('days-slider');
+    if (daysSlider) {
+      const daysPct = ((this.state.days - 7) / (35 - 7)) * 100;
+      daysSlider.style.setProperty('--fill-pct', `${daysPct}%`);
+    }
+    const trainSlider = document.getElementById('train-hours-slider');
+    if (trainSlider) {
+      const trainPct = ((this.state.trainMaxHours - 3) / (12 - 3)) * 100;
+      trainSlider.style.setProperty('--fill-pct', `${trainPct}%`);
+    }
+
     // Zum Basics-Step navigieren
     this.showStep(1);
   },
@@ -169,7 +244,7 @@ const App = {
     if (arrivalContainer) {
       arrivalContainer.innerHTML = cc.airports.map((ap, i) => `
         <div class="radio-card${i === 0 ? ' active' : ''}" data-airport="${ap.value}" role="button" tabindex="0">
-          <div class="radio-card-icon" aria-hidden="true">📍</div>
+          <div class="radio-card-icon" aria-hidden="true">✈️</div>
           <div class="radio-card-label">${ap.label}</div>
           <div class="radio-card-desc">${ap.desc}</div>
         </div>
@@ -179,7 +254,7 @@ const App = {
     if (returnContainer) {
       returnContainer.innerHTML = cc.airports.map(ap => `
         <div class="radio-card" data-return-airport="${ap.value}" role="button" tabindex="0">
-          <div class="radio-card-icon" aria-hidden="true">📍</div>
+          <div class="radio-card-icon" aria-hidden="true">✈️</div>
           <div class="radio-card-label">${ap.label}</div>
           <div class="radio-card-desc">${ap.desc}</div>
         </div>
@@ -223,6 +298,11 @@ const App = {
     this.currentStep = step;
     this.updateProgressDots();
 
+    // Bei Loading (4) und Ergebnis (5) immer nach oben scrollen
+    if (step === 4 || step === 5) {
+      window.scrollTo({ top: 0 });
+    }
+
     // Header-Modus: transparent auf Hero, normal auf anderen Steps
     const header = document.querySelector('.site-header');
     if (header) {
@@ -240,9 +320,15 @@ const App = {
       }, 100);
     }
 
-    // Scroll zum Step-Container
+    // Scroll zum Step-Container + Focus-Management
     if (el) {
       el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      // Focus auf die Überschrift des neuen Steps setzen (Barrierefreiheit)
+      const heading = el.querySelector('h2, h3');
+      if (heading) {
+        heading.setAttribute('tabindex', '-1');
+        setTimeout(() => heading.focus({ preventScroll: true }), 400);
+      }
     }
   },
 
@@ -250,14 +336,38 @@ const App = {
    * Geht zum nächsten Step
    */
   async nextStep() {
-    const next = this.currentStep + 1;
+    // Doppelklick-Schutz während Routengenerierung
+    if (this._generating) return;
 
-    // Vor dem Wechsel zu Step 4 (Loading): API Key prüfen und Route generieren
-    if (next === 4) {
-      if (!this.apiKey) {
-        this.showApiKeyModal();
-        return;
+    let next = this.currentStep + 1;
+
+    // KI-Inspiration: Von Step 2 direkt Step 3 überspringen
+    if (next === 3 && this.state.routeMode === 'inspired') {
+      this.state.pinnedCities = [];
+      this.state.additionalNotes = '';
+      next = 4; // direkt zum Loading
+    }
+
+    // Custom-Modus: Bestätigungsdialog + Pace-Auswahl
+    if (next === 4 && this.state.routeMode === 'custom') {
+      const pinCount = this.state.pinnedCities.length;
+      if (pinCount > 0) {
+        // IMMER Dialog zeigen wenn mindestens 1 Pin gesetzt
+        const confirmed = await this.showPinConfirmation(pinCount);
+        if (confirmed === null) return; // User hat abgebrochen
+        this.state.strictPins = confirmed; // true = nur diese Orte
+      } else {
+        // Keine Pins → KI plant frei, aber Pace-Dialog zeigen
+        const pace = await this.showPaceOnlyDialog();
+        if (pace === null) return; // User hat abgebrochen
+        this.state.travelPace = pace;
+        this.state.strictPins = false;
       }
+    }
+
+    // Vor dem Wechsel zu Step 4 (Loading): Route generieren
+    if (next === 4) {
+      this._generating = true;
       this.showStep(4);
       this.startLoading();
       try {
@@ -269,7 +379,9 @@ const App = {
         this.stopLoading();
         console.error('Route generation error:', err);
         this.showError(err.message);
-        this.showStep(3);
+        this.showStep(this.state.routeMode === 'inspired' ? 2 : 3);
+      } finally {
+        this._generating = false;
       }
       return;
     }
@@ -280,38 +392,207 @@ const App = {
   },
 
   /**
-   * Express-Route: Überspringt Präferenzen + Must-See, KI entscheidet alles
+   * Zeigt den Bestätigungsdialog wenn wenige Pins gewählt wurden
+   * @returns {Promise<boolean|null>} true = nur diese Orte, false = KI ergänzt, null = abgebrochen
    */
-  async expressRoute() {
-    if (!this.apiKey) {
-      this.showApiKeyModal();
-      return;
-    }
+  showPinConfirmation(pinCount) {
+    return new Promise((resolve) => {
+      const days = this.state.days;
+      const dests = MapModule.getActiveDestinations();
+      const pinNames = this.state.pinnedCities
+        .map(id => { const d = dests.find(x => x.id === id); return d ? d.name : id; })
+        .join(', ');
 
-    // Balanced Defaults beibehalten, keine Pins
-    this.state.pinnedCities = [];
-    this.state.additionalNotes = '';
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop active';
+      backdrop.id = 'pin-confirm-modal';
+      backdrop.innerHTML = `
+        <div class="modal pin-confirm-modal">
+          <div class="pin-confirm-header">
+            <span class="pin-confirm-icon">🤔</span>
+            <h3>Kurze Rückfrage</h3>
+          </div>
+          <p class="pin-confirm-text">
+            Du hast <strong>${pinCount} ${pinCount === 1 ? 'Ort' : 'Orte'}</strong> für <strong>${days} Tage</strong> gewählt: <em>${pinNames}</em>.
+            <br>Soll die KI passende Ziele ergänzen, oder möchtest du nur diese Orte besuchen?
+          </p>
+          <div class="pin-confirm-options">
+            <button class="pin-confirm-btn pin-confirm-strict" data-choice="strict">
+              <span class="pin-confirm-btn-icon">📌</span>
+              <span class="pin-confirm-btn-title">Nur diese Orte</span>
+              <span class="pin-confirm-btn-desc">Mehr Zeit pro Stopp, keine Überraschungen</span>
+            </button>
+            <button class="pin-confirm-btn pin-confirm-fill" data-choice="fill">
+              <span class="pin-confirm-btn-icon">✨</span>
+              <span class="pin-confirm-btn-title">KI soll ergänzen</span>
+              <span class="pin-confirm-btn-desc">Passende Ziele werden automatisch hinzugefügt</span>
+            </button>
+          </div>
+          <div class="pin-confirm-pace" id="pin-confirm-pace" style="display:none;">
+            <div class="pin-confirm-pace-label">Dein Reisetempo:</div>
+            <div class="pin-confirm-pace-cards">
+              <button class="pace-card-mini" data-pace-choice="fast">
+                <span class="pace-card-mini-icon">🚀</span>
+                <span class="pace-card-mini-title">Viel sehen</span>
+                <span class="pace-card-mini-desc">2–3 Nächte pro Stopp</span>
+              </button>
+              <button class="pace-card-mini active" data-pace-choice="balanced">
+                <span class="pace-card-mini-icon">⚖️</span>
+                <span class="pace-card-mini-title">Ausgewogen</span>
+                <span class="pace-card-mini-desc">3–4 Nächte pro Stopp</span>
+              </button>
+              <button class="pace-card-mini" data-pace-choice="slow">
+                <span class="pace-card-mini-icon">🐢</span>
+                <span class="pace-card-mini-title">Slow Travel</span>
+                <span class="pace-card-mini-desc">4–5 Nächte pro Stopp</span>
+              </button>
+            </div>
+            <button class="btn btn-primary pin-confirm-go" data-choice="fill-go">Route erstellen ✨</button>
+          </div>
+          <button class="pin-confirm-cancel" data-choice="cancel">← Zurück zur Karte</button>
+        </div>
+      `;
 
-    this.showStep(4);
-    this.startLoading();
-    try {
-      const result = await Gemini.generateRoute();
-      this.stopLoading();
-      this.showStep(5);
-      Results.render(result);
-    } catch (err) {
-      this.stopLoading();
-      console.error('Express route error:', err);
-      this.showError(err.message);
-      this.showStep(1);
-    }
+      let selectedPace = 'balanced';
+
+      const cleanup = (choice) => {
+        backdrop.classList.remove('active');
+        setTimeout(() => backdrop.remove(), 300);
+        document.removeEventListener('keydown', escHandler);
+        if (choice === 'strict') resolve(true);
+        else if (choice === 'fill' || choice === 'fill-go') {
+          this.state.travelPace = selectedPace;
+          resolve(false);
+        } else resolve(null);
+      };
+
+      backdrop.addEventListener('click', (e) => {
+        // Pace-Card auswählen
+        const paceBtn = e.target.closest('[data-pace-choice]');
+        if (paceBtn) {
+          selectedPace = paceBtn.dataset.paceChoice;
+          backdrop.querySelectorAll('[data-pace-choice]').forEach(b => b.classList.remove('active'));
+          paceBtn.classList.add('active');
+          return;
+        }
+
+        const btn = e.target.closest('[data-choice]');
+        if (btn) {
+          const choice = btn.dataset.choice;
+          // "KI soll ergänzen" → Pace-Section einblenden statt sofort abschließen
+          if (choice === 'fill') {
+            const paceSection = backdrop.querySelector('#pin-confirm-pace');
+            const optionsSection = backdrop.querySelector('.pin-confirm-options');
+            if (paceSection && optionsSection) {
+              optionsSection.style.display = 'none';
+              paceSection.style.display = '';
+            }
+            return;
+          }
+          cleanup(choice);
+        } else if (e.target === backdrop) {
+          cleanup('cancel');
+        }
+      });
+
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          cleanup('cancel');
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
+      document.body.appendChild(backdrop);
+    });
+  },
+
+  /**
+   * Zeigt einen reinen Pace-Dialog wenn keine Pins gesetzt sind
+   * @returns {Promise<string|null>} Pace ('fast'|'balanced'|'slow') oder null bei Abbruch
+   */
+  showPaceOnlyDialog() {
+    return new Promise((resolve) => {
+      const days = this.state.days;
+      const backdrop = document.createElement('div');
+      backdrop.className = 'modal-backdrop active';
+      backdrop.id = 'pace-only-modal';
+      backdrop.innerHTML = `
+        <div class="modal pin-confirm-modal">
+          <div class="pin-confirm-header">
+            <span class="pin-confirm-icon">✨</span>
+            <h3>Die KI plant für dich</h3>
+          </div>
+          <p class="pin-confirm-text">
+            Du hast keine Orte ausgewählt. Die KI erstellt eine komplette Route für <strong>${days} Tage</strong> basierend auf deinen Interessen.
+          </p>
+          <div class="pin-confirm-pace" style="display:block;">
+            <div class="pin-confirm-pace-label">Wähle dein Reisetempo:</div>
+            <div class="pin-confirm-pace-cards">
+              <button class="pace-card-mini" data-pace-choice="fast">
+                <span class="pace-card-mini-icon">🚀</span>
+                <span class="pace-card-mini-title">Viel sehen</span>
+                <span class="pace-card-mini-desc">2–3 Nächte pro Stopp</span>
+              </button>
+              <button class="pace-card-mini active" data-pace-choice="balanced">
+                <span class="pace-card-mini-icon">⚖️</span>
+                <span class="pace-card-mini-title">Ausgewogen</span>
+                <span class="pace-card-mini-desc">3–4 Nächte pro Stopp</span>
+              </button>
+              <button class="pace-card-mini" data-pace-choice="slow">
+                <span class="pace-card-mini-icon">🐢</span>
+                <span class="pace-card-mini-title">Slow Travel</span>
+                <span class="pace-card-mini-desc">4–5 Nächte pro Stopp</span>
+              </button>
+            </div>
+            <button class="btn btn-primary pin-confirm-go" data-choice="go">Route erstellen ✨</button>
+          </div>
+          <button class="pin-confirm-cancel" data-choice="cancel">← Zurück zur Karte</button>
+        </div>
+      `;
+
+      let selectedPace = 'balanced';
+
+      const cleanup = (choice) => {
+        backdrop.classList.remove('active');
+        setTimeout(() => backdrop.remove(), 300);
+        document.removeEventListener('keydown', escHandler);
+        if (choice === 'go') resolve(selectedPace);
+        else resolve(null);
+      };
+
+      backdrop.addEventListener('click', (e) => {
+        const paceBtn = e.target.closest('[data-pace-choice]');
+        if (paceBtn) {
+          selectedPace = paceBtn.dataset.paceChoice;
+          backdrop.querySelectorAll('[data-pace-choice]').forEach(b => b.classList.remove('active'));
+          paceBtn.classList.add('active');
+          return;
+        }
+        const btn = e.target.closest('[data-choice]');
+        if (btn) cleanup(btn.dataset.choice);
+        else if (e.target === backdrop) cleanup('cancel');
+      });
+
+      const escHandler = (e) => {
+        if (e.key === 'Escape') {
+          cleanup('cancel');
+        }
+      };
+      document.addEventListener('keydown', escHandler);
+
+      document.body.appendChild(backdrop);
+    });
   },
 
   /**
    * Geht zum vorherigen Step
    */
   prevStep() {
-    const prev = this.currentStep - 1;
+    let prev = this.currentStep - 1;
+    // Step 4 (Loading) überspringen — direkt zu Step 3 (oder Step 2 im Inspired-Modus)
+    if (prev === 4) {
+      prev = this.state.routeMode === 'inspired' ? 2 : 3;
+    }
     if (prev >= 0) {
       this.showStep(prev);
     }
@@ -327,11 +608,19 @@ const App = {
       progressBar.style.display = this.currentStep === 0 ? 'none' : 'flex';
     }
 
-    document.querySelectorAll('.progress-dot').forEach((dot, i) => {
-      dot.classList.remove('active', 'completed');
-      if (i === this.currentStep) dot.classList.add('active');
-      else if (i < this.currentStep) dot.classList.add('completed');
-      dot.style.cursor = i < this.currentStep ? 'pointer' : '';
+    // Map currentStep (1-5) to progress-step index (0-3)
+    const activeIndex = Math.min(this.currentStep - 1, 3);
+
+    document.querySelectorAll('.progress-step').forEach((step, i) => {
+      step.classList.remove('active', 'completed');
+      if (i === activeIndex) step.classList.add('active');
+      else if (i < activeIndex) step.classList.add('completed');
+      step.style.cursor = i < activeIndex ? 'pointer' : '';
+    });
+
+    // Update connectors
+    document.querySelectorAll('.progress-connector').forEach((conn, i) => {
+      conn.classList.toggle('completed', i < activeIndex);
     });
   },
 
@@ -350,24 +639,39 @@ const App = {
       if (e.target.closest('[data-action="start"]')) {
         this.showStep(1);
       }
-      if (e.target.closest('[data-action="express"]')) {
-        this.expressRoute();
-      }
       if (e.target.closest('[data-action="restart"]')) {
         if (this.currentStep > 0 && !confirm('Alle Eingaben gehen verloren. Möchtest du wirklich neu starten?')) return;
         this.restart();
       }
     });
 
-    // Stepper-Dots: Klick auf bereits besuchte Steps
+    // Stepper-Steps: Klick auf bereits besuchte Steps
     document.addEventListener('click', (e) => {
-      const dot = e.target.closest('.progress-dot');
-      if (!dot) return;
-      const dots = [...document.querySelectorAll('.progress-dot')];
-      const dotIndex = dots.indexOf(dot);
-      if (dotIndex >= 0 && dotIndex < this.currentStep) {
-        this.showStep(dotIndex);
+      const step = e.target.closest('.progress-step');
+      if (!step) return;
+      const steps = [...document.querySelectorAll('.progress-step')];
+      const stepIndex = steps.indexOf(step);
+      // progress-step index 0 = app step 1, etc.
+      const targetStep = stepIndex + 1;
+      if (targetStep >= 1 && targetStep < this.currentStep) {
+        this.showStep(targetStep);
       }
+    });
+
+    // Kontinent-Filter für Länderauswahl
+    document.addEventListener('click', (e) => {
+      const chip = e.target.closest('.continent-chip');
+      if (!chip) return;
+      const continent = chip.dataset.continent;
+      document.querySelectorAll('.continent-chip').forEach(c => c.classList.remove('active'));
+      chip.classList.add('active');
+      document.querySelectorAll('.country-card').forEach(card => {
+        if (continent === 'all' || card.dataset.continent === continent) {
+          card.style.display = '';
+        } else {
+          card.style.display = 'none';
+        }
+      });
     });
 
     // Keyboard-Navigation für Radio-Cards und Country-Cards (Enter/Space)
@@ -496,15 +800,48 @@ const App = {
         this.state.trainMaxHours = parseInt(e.target.value);
         const display = document.getElementById('train-hours-value');
         if (display) display.textContent = `${this.state.trainMaxHours} Stunden Zugfahrt`;
+        // Slider-Fill
+        const pct = ((this.state.trainMaxHours - 3) / (12 - 3)) * 100;
+        e.target.style.setProperty('--fill-pct', `${pct}%`);
       }
     });
 
-    // Days Slider
+    // Days Slider + Number Input (bidirektional synchronisiert)
     document.addEventListener('input', (e) => {
       if (e.target.id === 'days-slider') {
         this.state.days = parseInt(e.target.value);
-        const display = document.getElementById('days-value');
-        if (display) display.textContent = `${this.state.days} Tage`;
+        const numInput = document.getElementById('days-input');
+        if (numInput) numInput.value = this.state.days;
+        const pct = ((this.state.days - 7) / (35 - 7)) * 100;
+        e.target.style.setProperty('--fill-pct', `${pct}%`);
+      }
+      if (e.target.id === 'days-input') {
+        let val = parseInt(e.target.value);
+        if (isNaN(val)) return;
+        val = Math.max(7, Math.min(35, val));
+        this.state.days = val;
+        const slider = document.getElementById('days-slider');
+        if (slider) {
+          slider.value = val;
+          const pct = ((val - 7) / (35 - 7)) * 100;
+          slider.style.setProperty('--fill-pct', `${pct}%`);
+        }
+      }
+    });
+    // Clamp on blur for number input
+    document.addEventListener('change', (e) => {
+      if (e.target.id === 'days-input') {
+        let val = parseInt(e.target.value);
+        if (isNaN(val)) val = 14;
+        val = Math.max(7, Math.min(35, val));
+        e.target.value = val;
+        this.state.days = val;
+        const slider = document.getElementById('days-slider');
+        if (slider) {
+          slider.value = val;
+          const pct = ((val - 7) / (35 - 7)) * 100;
+          slider.style.setProperty('--fill-pct', `${pct}%`);
+        }
       }
     });
 
@@ -553,44 +890,40 @@ const App = {
         this.state.additionalNotes = e.target.value;
       }
     });
-  },
 
-  /**
-   * Zeigt das API-Key Modal
-   */
-  showApiKeyModal() {
-    const backdrop = document.getElementById('apikey-modal');
-    if (backdrop) backdrop.classList.add('active');
-  },
+    // Route Mode Cards (Eigene Auswahl / KI-Inspiration)
+    document.addEventListener('click', (e) => {
+      const card = e.target.closest('.mode-card[data-mode]');
+      if (card) {
+        this.state.routeMode = card.dataset.mode;
+        document.querySelectorAll('.mode-card[data-mode]').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
 
-  /**
-   * Schließt das API-Key Modal
-   */
-  closeApiKeyModal() {
-    const backdrop = document.getElementById('apikey-modal');
-    if (backdrop) backdrop.classList.remove('active');
-  },
+        // Pace-Auswahl nur bei KI-Inspiration zeigen
+        const paceGroup = document.getElementById('pace-group');
+        if (paceGroup) {
+          paceGroup.classList.toggle('visible', this.state.routeMode === 'inspired');
+        }
 
-  /**
-   * Speichert den API Key und fährt fort
-   */
-  saveApiKey() {
-    const input = document.getElementById('apikey-input');
-    if (!input) return;
+        // Step 2 Button-Text anpassen
+        const nextBtn = document.querySelector('#step-2 [data-action="next"]');
+        if (nextBtn) {
+          nextBtn.textContent = this.state.routeMode === 'inspired'
+            ? 'Route erstellen ✨'
+            : 'Weiter zur Kartenauswahl';
+        }
+      }
+    });
 
-    const key = input.value.trim();
-    if (!key) {
-      input.style.borderColor = 'var(--danger)';
-      return;
-    }
-
-    this.apiKey = key;
-    this.closeApiKeyModal();
-
-    // Wenn wir von Step 3 kamen, jetzt Route generieren
-    if (this.currentStep === 3) {
-      this.nextStep();
-    }
+    // Travel Pace Cards
+    document.addEventListener('click', (e) => {
+      const card = e.target.closest('.pace-card[data-pace]');
+      if (card) {
+        this.state.travelPace = card.dataset.pace;
+        document.querySelectorAll('.pace-card[data-pace]').forEach(c => c.classList.remove('active'));
+        card.classList.add('active');
+      }
+    });
   },
 
   /**
@@ -600,12 +933,15 @@ const App = {
     const cc = CountryConfig.current;
     const facts = cc ? cc.facts : [];
     this._loadingStart = Date.now();
+    // Shuffled facts für wiederholungsfreie Rotation
+    this._shuffledFacts = [...facts].sort(() => Math.random() - 0.5);
+    this._factIndex = 0;
 
     // Facts initialisieren
     const factEl = document.getElementById('loading-fact');
-    if (factEl && facts.length > 0) {
-      const fact = facts[Math.floor(Math.random() * facts.length)];
-      factEl.innerHTML = `<strong>Wusstest du?</strong> ${fact}`;
+    if (factEl && this._shuffledFacts.length > 0) {
+      factEl.innerHTML = `<strong>Wusstest du?</strong> ${this._shuffledFacts[0]}`;
+      this._factIndex = 1;
     }
 
     // Fortschrittsbalken und Phasen zurücksetzen
@@ -618,9 +954,6 @@ const App = {
       if (i === 0) p.classList.add('active');
     });
 
-    const timerEl = document.getElementById('loading-timer');
-    if (timerEl) timerEl.textContent = '⏱ 0s';
-
     // Phasen-Zeitpunkte (in Sekunden) – simuliert den KI-Prozess
     const phaseTimings = [0, 8, 20, 40];
     // Fortschrittsbalken: wächst asymptotisch bis ~92% (nie 100% bis fertig)
@@ -629,9 +962,6 @@ const App = {
     // Interval: Timer + Phasen + Bar jede Sekunde aktualisieren
     this._loadingInterval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - this._loadingStart) / 1000);
-
-      // Timer aktualisieren
-      if (timerEl) timerEl.textContent = `⏱ ${elapsed}s`;
 
       // Phasen aktualisieren
       let currentPhase = 0;
@@ -651,10 +981,11 @@ const App = {
       const progress = Math.min(92, (1 - Math.exp(-elapsed / (estimatedDuration * 0.5))) * 92);
       if (barFill) barFill.style.width = `${progress.toFixed(1)}%`;
 
-      // Facts alle 6 Sekunden rotieren
-      if (elapsed > 0 && elapsed % 6 === 0 && factEl && facts.length > 0) {
-        const fact = facts[Math.floor(Math.random() * facts.length)];
-        factEl.innerHTML = `<strong>Wusstest du?</strong> ${fact}`;
+      // Facts alle 6 Sekunden rotieren (ohne Wiederholung)
+      if (elapsed > 0 && elapsed % 6 === 0 && factEl && this._shuffledFacts.length > 0) {
+        if (this._factIndex >= this._shuffledFacts.length) this._factIndex = 0;
+        factEl.innerHTML = `<strong>Wusstest du?</strong> ${this._shuffledFacts[this._factIndex]}`;
+        this._factIndex++;
       }
     }, 1000);
   },
@@ -696,6 +1027,8 @@ const App = {
    * Zeigt Loading, generiert neu, bei Fehler alte Route beibehalten
    */
   async regenerateRoute() {
+    if (this._generating) return;
+    this._generating = true;
     const oldResult = this.state.result;
 
     this.showStep(4);
@@ -718,6 +1051,8 @@ const App = {
       } else {
         this.showStep(3);
       }
+    } finally {
+      this._generating = false;
     }
   },
 
@@ -749,6 +1084,79 @@ const App = {
   },
 
   /**
+   * Setzt alle Formular-DOM-Elemente auf ihre Defaults zurück
+   */
+  resetFormDOM() {
+    // Days Slider
+    const daysSlider = document.getElementById('days-slider');
+    if (daysSlider) {
+      daysSlider.value = 14;
+      daysSlider.style.setProperty('--fill-pct', `${((14 - 7) / (35 - 7)) * 100}%`);
+    }
+    const daysInput = document.getElementById('days-input');
+    if (daysInput) daysInput.value = 14;
+
+    // Train Hours Slider
+    const trainSlider = document.getElementById('train-hours-slider');
+    if (trainSlider) {
+      trainSlider.value = 6;
+      trainSlider.style.setProperty('--fill-pct', `${((6 - 3) / (12 - 3)) * 100}%`);
+    }
+    const trainDisplay = document.getElementById('train-hours-value');
+    if (trainDisplay) trainDisplay.textContent = '6 Stunden';
+    const trainGroup = document.getElementById('train-hours-group');
+    if (trainGroup) trainGroup.classList.remove('visible');
+
+    // Season Cards → Spring als Default
+    document.querySelectorAll('.radio-card[data-season]').forEach(c => c.classList.remove('active'));
+    const springCard = document.querySelector('.radio-card[data-season="spring"]');
+    if (springCard) springCard.classList.add('active');
+
+    // Group Cards → Solo als Default
+    document.querySelectorAll('.radio-card[data-group]').forEach(c => c.classList.remove('active'));
+    const soloCard = document.querySelector('.radio-card[data-group="solo"]');
+    if (soloCard) soloCard.classList.add('active');
+
+    // Child Age ausblenden + Reset
+    const childGroup = document.getElementById('child-age-group');
+    if (childGroup) childGroup.classList.remove('visible');
+    document.querySelectorAll('.radio-card[data-age]').forEach(c => c.classList.remove('active'));
+
+    // Return-Airport Felder zurücksetzen
+    document.querySelectorAll('.radio-card[data-return]').forEach(c => c.classList.remove('active'));
+    const sameReturnCard = document.querySelector('.radio-card[data-return="same"]');
+    if (sameReturnCard) sameReturnCard.classList.add('active');
+    const depGroup = document.getElementById('return-airport-group');
+    if (depGroup) depGroup.classList.remove('visible');
+
+    // Additional Notes Textarea
+    const notesField = document.getElementById('additional-notes');
+    if (notesField) notesField.value = '';
+
+    // Custom Airport Input
+    const customAirport = document.getElementById('custom-airport');
+    if (customAirport) customAirport.value = '';
+
+    // Route Mode → Custom als Default
+    document.querySelectorAll('.mode-card[data-mode]').forEach(c => c.classList.remove('active'));
+    const customModeCard = document.querySelector('.mode-card[data-mode="custom"]');
+    if (customModeCard) customModeCard.classList.add('active');
+
+    // Pace Group ausblenden + Balanced als Default
+    const paceGroup = document.getElementById('pace-group');
+    if (paceGroup) paceGroup.classList.remove('visible');
+    document.querySelectorAll('.pace-card[data-pace]').forEach(c => c.classList.remove('active'));
+    const balancedCard = document.querySelector('.pace-card[data-pace="balanced"]');
+    if (balancedCard) balancedCard.classList.add('active');
+
+    // Step 2 Next-Button Text zurücksetzen
+    const nextBtn = document.querySelector('#step-2 [data-action="next"]');
+    if (nextBtn) nextBtn.textContent = 'Weiter zur Kartenauswahl';
+
+    // Preference Sliders werden durch Preferences.render() beim nächsten Step-2-Besuch neu gerendert
+  },
+
+  /**
    * Startet die App neu (zurück zum Hero / Länderauswahl)
    */
   restart() {
@@ -765,8 +1173,6 @@ const App = {
     if (progressBar) progressBar.style.display = '';
 
     // Header-Links wiederherstellen
-    const apiKeyLink = document.querySelector('.header-nav a[onclick*="showApiKeyModal"]');
-    if (apiKeyLink) apiKeyLink.style.display = '';
     const restartLink = document.querySelector('.header-nav a[onclick*="restart"]');
     if (restartLink) restartLink.textContent = 'Neu starten';
 
@@ -776,16 +1182,27 @@ const App = {
     this.state.departureAirport = null;
     this.state.transport = 'no-preference';
     this.state.trainMaxHours = 6;
+    this.state.days = 14;
+    this.state.season = 'spring';
+    this.state.group = 'solo';
+    this.state.childAge = null;
     this.state.pinnedCities = [];
     this.state.additionalNotes = '';
+    this.state.routeMode = 'custom';
+    this.state.travelPace = 'balanced';
+    this.state.strictPins = false;
     this.state.result = null;
     this.state.preferences = {
       'Kultur': 5, 'Natur': 5, 'Geschichte': 5,
       'Großstadt': 5, 'Erholung': 3, 'Abenteuer': 3, 'Kulinarik': 5
     };
+    Preferences._activePreset = null;
     this.stopLoading();
     Results.destroy();
     MapModule.destroy();
+
+    // DOM-Elemente auf Defaults zurücksetzen
+    this.resetFormDOM();
 
     // Branding zurücksetzen
     const logoSubtitle = document.getElementById('logo-subtitle');

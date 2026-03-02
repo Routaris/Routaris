@@ -180,11 +180,16 @@ const Wiki = {
     const dests = CountryConfig.getDestinations();
     const promises = dests.map(async (dest) => {
       const url = await this.getThumbnail(dest.wiki);
+      const imgs = document.querySelectorAll(`[data-wiki="${dest.id}"]`);
       if (url) {
-        const imgs = document.querySelectorAll(`[data-wiki="${dest.id}"]`);
         imgs.forEach(img => {
           img.src = url;
           img.alt = dest.name;
+        });
+      } else {
+        // Kein Bild gefunden: Shimmer stoppen, dezenten Platzhalter zeigen
+        imgs.forEach(img => {
+          img.classList.add('no-image');
         });
       }
     });

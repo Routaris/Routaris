@@ -94,14 +94,16 @@ const Suggestions = {
    * Mappt einen Route-Stadtnamen auf eine DESTINATIONS-ID
    */
   matchCityToDestId(cityName) {
-    const lower = cityName.toLowerCase();
+    const stripAccents = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const lower = stripAccents(cityName);
     const dests = CountryConfig.getDestinations();
-    const dest = dests.find(d =>
-      lower.includes(d.name.split('/')[0].trim().toLowerCase()) ||
-      d.name.split('/')[0].trim().toLowerCase().includes(lower) ||
-      d.id === lower ||
-      (d.altName && lower.includes(d.altName.toLowerCase()))
-    );
+    const dest = dests.find(d => {
+      const nameNorm = stripAccents(d.name.split('/')[0].trim());
+      return lower.includes(nameNorm) ||
+        nameNorm.includes(lower) ||
+        d.id === lower ||
+        (d.altName && lower.includes(stripAccents(d.altName)));
+    });
     return dest ? dest.id : null;
   },
 

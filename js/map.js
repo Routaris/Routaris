@@ -33,9 +33,9 @@ const MapModule = {
 
     // Fallback: Name-Matching
     const dests = this.getActiveDestinations();
-    const city = airportStr.split(/\s/)[0].toLowerCase();
+    const city = airportStr.split(/\s/)[0].normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
     const match = dests.find(d =>
-      d.name.toLowerCase().includes(city) || d.id.includes(city)
+      d.name.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().includes(city) || d.id.includes(city)
     );
     return match ? match.id : null;
   },
@@ -75,8 +75,12 @@ const MapModule = {
     const zoom = cc ? cc.mapZoom : 4;
 
     if (this.map) {
-      this.updateAll();
+      // Alte Marker entfernen (Länderwechsel)
+      Object.values(this.markers).forEach(m => this.map.removeLayer(m));
+      this.markers = {};
       this.map.setView(center, zoom);
+      this.addMarkers();
+      this.updateAll();
       this.map.invalidateSize();
       return;
     }
@@ -102,11 +106,13 @@ const MapModule = {
    * Erstellt einen Marker-Icon basierend auf Status
    */
   createIcon(status, isOffbeat) {
+    const s = getComputedStyle(document.documentElement);
+    const v = (name) => s.getPropertyValue(name).trim();
     const colors = {
-      pinned: { bg: '#c4654a', border: '#a8513a' },
-      suggested: { bg: '#2a7c76', border: '#1f5f5a' },
-      neutral: { bg: '#8a8878', border: '#6a6860' },
-      offbeat: { bg: '#c8a951', border: '#a88d3a' }
+      pinned:    { bg: v('--terracotta'),  border: v('--terracotta-dark') },
+      suggested: { bg: v('--teal'),        border: v('--teal-dark') },
+      neutral:   { bg: v('--ink-muted'),   border: '#6a6860' },
+      offbeat:   { bg: v('--gold'),        border: '#a88d3a' }
     };
     // Offbeat-Ziele bekommen eigene Farbe, außer wenn gepinnt
     const c = (status === 'pinned') ? colors.pinned
@@ -131,14 +137,11 @@ const MapModule = {
   },
 
   /**
-   * Fügt Marker hinzu – Hauptziele immer, Offbeat nur wenn gepinnt
+   * Fügt Marker für alle Destinations hinzu (inkl. Offbeat)
    */
   addMarkers() {
     const dests = this.getActiveDestinations();
-    dests.forEach(dest => {
-      if (dest.offbeat && !App.state.pinnedCities.includes(dest.id)) return;
-      this.addSingleMarker(dest);
-    });
+    dests.forEach(dest => this.addSingleMarker(dest));
   },
 
   addSingleMarker(dest) {
@@ -173,23 +176,11 @@ const MapModule = {
    * Toggled den Pin-Status einer Destination
    */
   togglePin(destId) {
-    const dests = this.getActiveDestinations();
     const idx = App.state.pinnedCities.indexOf(destId);
     if (idx > -1) {
       App.state.pinnedCities.splice(idx, 1);
-      // Offbeat-Marker nur entfernen wenn Sektion geschlossen
-      const dest = dests.find(d => d.id === destId);
-      if (dest && dest.offbeat && !this.offbeatOpen && this.markers[destId]) {
-        this.map.removeLayer(this.markers[destId]);
-        delete this.markers[destId];
-      }
     } else {
       App.state.pinnedCities.push(destId);
-      // Offbeat-Marker zur Karte hinzufügen (falls noch nicht da)
-      const dest = dests.find(d => d.id === destId);
-      if (dest && dest.offbeat) {
-        this.addSingleMarker(dest);
-      }
     }
     this.updateAll();
   },
@@ -209,9 +200,14 @@ const MapModule = {
 
     this.renderGrid();
 
-    const counter = document.getElementById('pin-counter');
-    if (counter) {
-      counter.textContent = App.state.pinnedCities.length;
+    const infoText = document.getElementById('mustsee-info-text');
+    if (infoText) {
+      const count = App.state.pinnedCities.length;
+      if (count === 0) {
+        infoText.textContent = 'Optional: Wähle Ziele, die unbedingt dabei sein sollen — oder lass die KI frei entscheiden.';
+      } else {
+        infoText.innerHTML = `📌 <strong>${count} Pflicht-Stopp${count > 1 ? 's' : ''}</strong> gewählt`;
+      }
     }
   },
 
@@ -224,36 +220,10 @@ const MapModule = {
 
     const arrivalDestId = this.getDestIdForAirport(App.state.airport);
 
-    // Hauptziele sortieren
-    const mainDests = this.sortDestinations(this.getMainDestinations(), arrivalDestId);
+    // Alle Ziele zusammen sortieren (Hauptziele zuerst, dann Offbeat)
+    const allDests = this.sortDestinations(this.getActiveDestinations(), arrivalDestId);
 
-    // Offbeat sortieren (gepinnte oben)
-    const offbeatDests = this.sortDestinations(this.getOffbeatDestinations(), arrivalDestId);
-
-    let html = mainDests.map(dest => this.renderCard(dest, arrivalDestId)).join('');
-
-    // Off the Beaten Path Sektion
-    html += `
-      <div class="offbeat-section" id="offbeat-section">
-        <button class="offbeat-toggle" onclick="MapModule.toggleOffbeat()">
-          <span class="offbeat-toggle-icon" id="offbeat-icon">+</span>
-          <span>Off the Beaten Path</span>
-          <span class="offbeat-toggle-count">${offbeatDests.length} Geheimtipps</span>
-        </button>
-        <div class="offbeat-list" id="offbeat-list">
-          <div class="offbeat-hint">Weniger bekannte Ziele abseits der typischen Touristenrouten. Klicke zum Anpinnen.</div>
-          ${offbeatDests.map(dest => this.renderCard(dest, arrivalDestId)).join('')}
-        </div>
-      </div>
-    `;
-
-    container.innerHTML = html;
-
-    // Offbeat-Sektion offen halten wenn sie es vorher war, oder wenn Offbeat-Ziele gepinnt sind
-    const hasOffbeatPinned = offbeatDests.some(d => App.state.pinnedCities.includes(d.id));
-    if (this.offbeatOpen || hasOffbeatPinned) {
-      this.toggleOffbeat(true);
-    }
+    container.innerHTML = allDests.map(dest => this.renderCard(dest, arrivalDestId)).join('');
 
     Wiki.loadAllThumbnails();
   },
@@ -287,7 +257,9 @@ const MapModule = {
           <div class="dest-card-highlights">${dest.highlights}</div>
           <div class="dest-card-tags">
             ${dest.tags.map(t => `<span class="tag tag-teal">${t}</span>`).join('')}
-            ${dest.family ? '<span class="tag tag-gold">Familienfreundlich</span>' : ''}
+            ${App.state.group === 'family' && App.state.childAge
+              ? Family.renderBadge(dest, App.state.childAge)
+              : (dest.family ? '<span class="tag tag-gold">Familienfreundlich</span>' : '')}
             ${dest.offbeat ? '<span class="tag tag-terracotta">Geheimtipp</span>' : ''}
           </div>
           <div class="dest-card-pin">
@@ -315,7 +287,7 @@ const MapModule = {
       className: 'custom-marker custom-marker-highlight',
       html: `<div style="
         width: 24px; height: 24px;
-        background: #c4654a;
+        background: var(--terracotta);
         border: 3px solid white;
         border-radius: 50%;
         box-shadow: 0 0 0 4px rgba(196,101,74,0.35), 0 2px 8px rgba(0,0,0,0.3);
@@ -347,40 +319,9 @@ const MapModule = {
   },
 
   /**
-   * Klappt die Offbeat-Sektion auf/zu
+   * Legacy no-op (offbeat is now always inline)
    */
-  toggleOffbeat(forceOpen) {
-    const list = document.getElementById('offbeat-list');
-    const gridIcon = document.getElementById('offbeat-icon');
-    const topToggle = document.getElementById('offbeat-top-toggle');
-    const topIcon = document.getElementById('offbeat-top-icon');
-    if (!list) return;
-    const isOpen = forceOpen === true || !list.classList.contains('open');
-    list.classList.toggle('open', isOpen);
-    if (gridIcon) gridIcon.textContent = isOpen ? '−' : '+';
-    if (topToggle) topToggle.classList.toggle('active', isOpen);
-    if (topIcon) topIcon.textContent = isOpen ? '✦' : '✦';
-    this.offbeatOpen = isOpen;
-
-    const offbeatDests = this.getOffbeatDestinations();
-    if (isOpen) {
-      // Alle Offbeat-Marker auf der Karte anzeigen
-      offbeatDests.forEach(dest => this.addSingleMarker(dest));
-      // Zur Offbeat-Sektion scrollen
-      const section = document.getElementById('offbeat-section');
-      if (section && forceOpen !== true) {
-        setTimeout(() => section.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
-      }
-    } else {
-      // Nicht-gepinnte Offbeat-Marker wieder entfernen
-      offbeatDests.forEach(dest => {
-        if (!App.state.pinnedCities.includes(dest.id) && this.markers[dest.id]) {
-          this.map.removeLayer(this.markers[dest.id]);
-          delete this.markers[dest.id];
-        }
-      });
-    }
-  },
+  toggleOffbeat() {},
 
   /**
    * Zerstört die Karte (Cleanup)
