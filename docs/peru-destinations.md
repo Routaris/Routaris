@@ -1,4 +1,4 @@
-# Peru Destinations Research – NomadRoute (Inkapfad)
+# Peru Destinations Research – Routaris (Inkapfad)
 
 ## Wikipedia-Verifikation
 

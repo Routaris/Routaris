@@ -6,6 +6,7 @@ const Results = {
   map: null,
   markers: [],
   activeStop: 0,
+  stopThumbnails: {},
 
   /**
    * Normalisiert einen Leg-Mode-String auf die bekannten Werte: train|flight|bus|sleeper_bus|boat|motorbike
@@ -178,6 +179,198 @@ const Results = {
   },
 
   /**
+   * Berechnet einen Kontrollpunkt für eine quadratische Bezier-Kurve
+   * Der Punkt liegt senkrecht zur Verbindungslinie, 15% der Distanz versetzt
+   */
+  _curveControlPoint(from, to, side = 1) {
+    const midLat = (from[0] + to[0]) / 2;
+    const midLng = (from[1] + to[1]) / 2;
+    const dLat = to[0] - from[0];
+    const dLng = to[1] - from[1];
+    const dist = Math.sqrt(dLat * dLat + dLng * dLng);
+    const offset = dist * 0.2;
+    // side=1 → links, side=-1 → rechts (für gegenläufige Strecken)
+    return [midLat + side * (dLng / dist) * offset, midLng - side * (dLat / dist) * offset];
+  },
+
+  /**
+   * Berechnet den Punkt auf einer quadratischen Bezier-Kurve bei t
+   */
+  _bezierPoint(p0, cp, p1, t) {
+    const mt = 1 - t;
+    return [
+      mt * mt * p0[0] + 2 * mt * t * cp[0] + t * t * p1[0],
+      mt * mt * p0[1] + 2 * mt * t * cp[1] + t * t * p1[1]
+    ];
+  },
+
+  /**
+   * Erstellt einen Premium SVG-Tropfen-Marker
+   */
+  createPremiumMarker(number, color, isCombi, combiLabel) {
+    if (isCombi) {
+      // Pill-förmiger Kombi-Badge für Rundreise Start=Ende
+      const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="36" viewBox="0 0 64 36">
+        <defs>
+          <filter id="ps" x="-20%" y="-20%" width="140%" height="140%">
+            <feDropShadow dx="0" dy="2" stdDeviation="2.5" flood-color="rgba(0,0,0,0.3)"/>
+          </filter>
+        </defs>
+        <rect x="2" y="2" width="60" height="32" rx="16" fill="${color}" stroke="white" stroke-width="2.5" filter="url(#ps)"/>
+        <text x="32" y="22" text-anchor="middle" fill="white" font-family="'Instrument Sans',sans-serif" font-weight="700" font-size="13">${combiLabel}</text>
+      </svg>`;
+      return L.divIcon({
+        className: 'premium-marker',
+        html: svg,
+        iconSize: [64, 36],
+        iconAnchor: [32, 18]
+      });
+    }
+
+    // Standard Teardrop-Pin
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="36" height="48" viewBox="0 0 36 48">
+      <defs>
+        <filter id="ms" x="-20%" y="-10%" width="140%" height="130%">
+          <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="rgba(0,0,0,0.3)"/>
+        </filter>
+      </defs>
+      <path d="M18 47C18 47 2 28 2 17C2 8.16 9.16 1 18 1C26.84 1 34 8.16 34 17C34 28 18 47 18 47Z"
+            fill="${color}" stroke="white" stroke-width="2.5" filter="url(#ms)"/>
+      <text x="18" y="22" text-anchor="middle" fill="white" font-family="'Instrument Sans',sans-serif" font-weight="700" font-size="14">${number}</text>
+    </svg>`;
+    return L.divIcon({
+      className: 'premium-marker',
+      html: svg,
+      iconSize: [36, 48],
+      iconAnchor: [18, 48]
+    });
+  },
+
+  /**
+   * Erstellt einen runden Thumbnail-Marker mit Nummer-Badge
+   */
+  _createThumbnailIcon(number, color, thumbUrl, size) {
+    const badge = Math.max(18, Math.round(size * 0.36));
+    const fs = Math.round(badge * 0.58);
+    return L.divIcon({
+      className: 'premium-marker premium-thumb',
+      html: `<div class="thumb-marker" style="width:${size}px;height:${size}px;">
+        <img src="${thumbUrl}" class="thumb-marker-img" style="width:${size}px;height:${size}px;">
+        <div class="thumb-marker-badge" style="background:${color};width:${badge}px;height:${badge}px;font-size:${fs}px;">${number}</div>
+      </div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2]
+    });
+  },
+
+  /**
+   * Erstellt einen runden Thumbnail-Marker für Rundreise (Kombi)
+   */
+  _createThumbnailCombiIcon(thumbUrl, size, label, color) {
+    const bh = Math.max(18, Math.round(size * 0.32));
+    return L.divIcon({
+      className: 'premium-marker premium-thumb',
+      html: `<div class="thumb-marker" style="width:${size}px;height:${size}px;">
+        <img src="${thumbUrl}" class="thumb-marker-img" style="width:${size}px;height:${size}px;">
+        <div class="thumb-marker-combi" style="background:${color};height:${bh}px;font-size:${Math.round(bh * 0.56)}px;">${label}</div>
+      </div>`,
+      iconSize: [size, size],
+      iconAnchor: [size / 2, size / 2]
+    });
+  },
+
+  /**
+   * Lädt Wiki-Thumbnails für alle Stops (für Zoom-Bilder)
+   */
+  async _loadStopThumbnails(result) {
+    this.stopThumbnails = {};
+    const strip = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const dests = typeof CountryConfig !== 'undefined' ? CountryConfig.getDestinations() : [];
+
+    const load = async (stop, i) => {
+      let wiki = stop.wiki;
+      if (!wiki) {
+        const cn = strip(stop.city);
+        const d = dests.find(d => {
+          const n = strip(d.name.split('/')[0].trim());
+          return cn.includes(n) || n.includes(cn) || (d.altName && cn.includes(strip(d.altName)));
+        });
+        wiki = d ? d.wiki : stop.city;
+      }
+      try {
+        const url = await Wiki.getThumbnail(wiki);
+        if (url) this.stopThumbnails[i] = url;
+      } catch (e) { /* kein Thumbnail */ }
+    };
+
+    await Promise.allSettled(result.stops.map((s, i) => load(s, i)));
+    this._updateMarkersForZoom();
+  },
+
+  /**
+   * Aktualisiert Marker-Icons + Labels abhängig vom Zoom-Level
+   * Zoom < 7: Teardrop-Pin mit Nummer + permanentes City-Label
+   * Zoom ≥ 7: Rundes Thumbnail (falls verfügbar) + City-Label
+   */
+  _updateMarkersForZoom() {
+    if (!this.map || !App.state.result) return;
+    const zoom = this.map.getZoom();
+    const result = App.state.result;
+    const useThumb = zoom >= 5;
+    const thumbSize = useThumb ? Math.min(68, 36 + (zoom - 5) * 5) : 0;
+
+    const cs = getComputedStyle(document.documentElement);
+    const cv = n => cs.getPropertyValue(n).trim();
+    const C = { terracotta: cv('--terracotta'), teal: cv('--teal'), ink: cv('--ink') };
+
+    const lastIdx = result.stops.length - 1;
+    const sameStartEnd = lastIdx > 0 &&
+      result.stops[0].city === result.stops[lastIdx].city &&
+      Math.abs(result.stops[0].lat - result.stops[lastIdx].lat) < 0.1 &&
+      Math.abs(result.stops[0].lng - result.stops[lastIdx].lng) < 0.1;
+
+    result.stops.forEach((stop, i) => {
+      const marker = this.markers[i];
+      if (!marker) return;
+      // Hidden click-marker für Rundreise-Ende
+      if (sameStartEnd && i === lastIdx) return;
+
+      const isFirst = i === 0;
+      const isLast = i === lastIdx && !sameStartEnd;
+      const isCombi = sameStartEnd && isFirst;
+      const color = isCombi ? C.terracotta : isFirst ? C.teal : isLast ? C.ink : C.terracotta;
+      const thumb = this.stopThumbnails[i];
+
+      if (isCombi) {
+        const combiLabel = `1 ↔ ${lastIdx + 1}`;
+        if (useThumb && thumb) {
+          marker.setIcon(this._createThumbnailCombiIcon(thumb, thumbSize, combiLabel, color));
+        } else {
+          marker.setIcon(this.createPremiumMarker(null, color, true, combiLabel));
+        }
+        marker.unbindTooltip();
+        marker.bindTooltip(stop.city, {
+          permanent: true, direction: 'bottom',
+          offset: [0, useThumb && thumb ? thumbSize / 2 + 6 : 6],
+          className: 'map-stop-label'
+        });
+      } else {
+        if (useThumb && thumb) {
+          marker.setIcon(this._createThumbnailIcon(i + 1, color, thumb, thumbSize));
+        } else {
+          marker.setIcon(this.createPremiumMarker(i + 1, color, false));
+        }
+        marker.unbindTooltip();
+        marker.bindTooltip(stop.city, {
+          permanent: true, direction: 'bottom',
+          offset: [0, useThumb && thumb ? thumbSize / 2 + 6 : 4],
+          className: 'map-stop-label'
+        });
+      }
+    });
+  },
+
+  /**
    * Initialisiert die Ergebnis-Karte
    */
   initMap(result) {
@@ -199,10 +392,11 @@ const Results = {
       zoomControl: true
     }).setView(mapCenter, mapZoom);
 
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager_labels_under/{z}/{x}/{y}{r}.png', {
       attribution: '&copy; OSM &copy; CARTO',
       subdomains: 'abcd',
-      maxZoom: 18
+      maxZoom: 18,
+      detectRetina: true
     }).addTo(this.map);
 
     this.markers = [];
@@ -228,39 +422,21 @@ const Results = {
       Math.abs(firstStop.lat - lastStop.lat) < 0.1 &&
       Math.abs(firstStop.lng - lastStop.lng) < 0.1;
 
-    // Nummerierte Marker mit Hover-Tooltips
+    // Nummerierte Premium-Marker mit permanenten City-Labels
     result.stops.forEach((stop, i) => {
       // Bei gleichem Start/Ende: kombinierten Marker für die erste Position
       if (sameStartEnd && i === lastIdx) {
-        const combinedIcon = L.divIcon({
-          className: 'result-marker',
-          html: `<div style="
-            display: flex; align-items: center; gap: 2px;
-            background: var(--terracotta);
-            border-radius: 16px;
-            padding: 0 10px;
-            height: 30px;
-            color: white;
-            font-weight: 700;
-            font-size: 12px;
-            font-family: 'Instrument Sans', sans-serif;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            border: 2.5px solid white;
-            white-space: nowrap;
-          "><span>1</span><span style="opacity:0.6;margin:0 1px;">↔</span><span>${lastIdx + 1}</span></div>`,
-          iconSize: [52, 30],
-          iconAnchor: [26, 15]
-        });
+        const combiIcon = this.createPremiumMarker(null, C.terracotta, true, `1 ↔ ${lastIdx + 1}`);
         if (this.markers[0]) {
-          this.markers[0].setIcon(combinedIcon);
+          this.markers[0].setIcon(combiIcon);
           this.markers[0].unbindTooltip();
-          this.markers[0].bindTooltip(
-            `<strong>${firstStop.city}</strong><br>${firstStop.nights + lastStop.nights} ${(firstStop.nights + lastStop.nights) === 1 ? 'Nacht' : 'Nächte'} (Start + Rückkehr)`,
-            { direction: 'top', offset: [0, -18], className: 'map-city-label' }
-          );
+          this.markers[0].bindTooltip(firstStop.city, {
+            permanent: true, direction: 'bottom', offset: [0, 6],
+            className: 'map-stop-label'
+          });
         }
         const clickMarker = L.marker([stop.lat, stop.lng], {
-          icon: L.divIcon({ className: 'result-marker-hidden', html: '', iconSize: [0, 0] }),
+          icon: L.divIcon({ className: 'premium-marker', html: '', iconSize: [0, 0] }),
           opacity: 0
         }).addTo(this.map);
         clickMarker.on('click', () => this.selectStop(i));
@@ -271,51 +447,51 @@ const Results = {
 
       const isFirst = i === 0;
       const isLast = i === lastIdx && !sameStartEnd;
+      const color = isFirst ? C.teal : isLast ? C.ink : C.terracotta;
 
       const marker = L.marker([stop.lat, stop.lng], {
-        icon: L.divIcon({
-          className: 'result-marker',
-          html: `<div style="
-            width: 30px; height: 30px;
-            background: ${isFirst ? C.teal : isLast ? C.ink : C.terracotta};
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-weight: 700;
-            font-size: 13px;
-            font-family: 'Instrument Sans', sans-serif;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-            border: 2.5px solid white;
-          ">${i + 1}</div>`,
-          iconSize: [30, 30],
-          iconAnchor: [15, 15]
-        })
+        icon: this.createPremiumMarker(i + 1, color, false)
       }).addTo(this.map);
 
-      // Hover-Tooltip mit Stadt + Nächte
-      marker.bindTooltip(
-        `<strong>${stop.city}</strong><br>${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'}`,
-        { direction: 'top', offset: [0, -18], className: 'map-city-label' }
-      );
+      // Permanentes City-Name-Label
+      marker.bindTooltip(stop.city, {
+        permanent: true, direction: 'bottom', offset: [0, 4],
+        className: 'map-stop-label'
+      });
 
       marker.on('click', () => this.selectStop(i));
       this.markers.push(marker);
       latlngs.push([stop.lat, stop.lng]);
     });
 
-    // Verbindungslinien + Transport-Badges auf der Karte
+    // Verbindungslinien (Bezier-Kurven) + Transport-Badges auf der Karte
     const drawnPairs = new Set();
+    const useCurve = typeof L.curve === 'function';
 
-    // Hilfsfunktion: Transport-Badge am Mittelpunkt einer Linie platzieren
-    const addLegBadge = (fromStop, toStop, leg) => {
-      const midLat = (fromStop.lat + toStop.lat) / 2;
-      const midLng = (fromStop.lng + toStop.lng) / 2;
+    // Hilfsfunktion: Bezier-Kurve oder Fallback-Polyline zeichnen
+    const drawCurve = (fromLL, toLL, opts, side = 1) => {
+      if (useCurve) {
+        const cp = this._curveControlPoint(fromLL, toLL, side);
+        return L.curve(['M', fromLL, 'Q', cp, toLL], opts).addTo(this.map);
+      }
+      return L.polyline([fromLL, toLL], opts).addTo(this.map);
+    };
+
+    // Hilfsfunktion: Transport-Badge am Mittelpunkt der Bezier-Kurve platzieren
+    const addLegBadge = (fromStop, toStop, leg, side = 1) => {
+      const from = [fromStop.lat, fromStop.lng];
+      const to = [toStop.lat, toStop.lng];
+      let badgePos;
+      if (useCurve) {
+        const cp = this._curveControlPoint(from, to, side);
+        badgePos = this._bezierPoint(from, cp, to, 0.5);
+      } else {
+        badgePos = [(from[0] + to[0]) / 2, (from[1] + to[1]) / 2];
+      }
       const badgeIcons = { train: '🚄', flight: '✈️', bus: '🚌', sleeper_bus: '🚌', boat: '⛴️', motorbike: '🏍️', car: '🚙' };
       const mode = Results.normalizeLegMode(leg.mode);
       const icon = badgeIcons[mode] || '🚄';
-      const badge = L.marker([midLat, midLng], {
+      L.marker(badgePos, {
         icon: L.divIcon({
           className: 'map-leg-badge',
           html: `<div class="map-leg-badge-inner map-leg-badge-${mode}">${icon} ${leg.duration}</div>`,
@@ -334,6 +510,9 @@ const Results = {
         if (!fromStop || !toStop) return;
 
         const pairKey = `${fromStop.lat},${fromStop.lng}-${toStop.lat},${toStop.lng}`;
+        const reverseKey = `${toStop.lat},${toStop.lng}-${fromStop.lat},${fromStop.lng}`;
+        // Gegenläufige Strecke? → andere Seite biegen
+        const side = drawnPairs.has(reverseKey) ? -1 : 1;
         drawnPairs.add(pairKey);
 
         const legMode = Results.normalizeLegMode(leg.mode);
@@ -341,31 +520,36 @@ const Results = {
         const isBusLeg = legMode === 'bus' || legMode === 'sleeper_bus';
         const isBoatLeg = legMode === 'boat';
         const isCarLeg = legMode === 'car';
-        L.polyline(
-          [[fromStop.lat, fromStop.lng], [toStop.lat, toStop.lng]],
+
+        drawCurve(
+          [fromStop.lat, fromStop.lng],
+          [toStop.lat, toStop.lng],
           {
             color: isFlightLeg ? C.terracotta : isCarLeg ? C.gold : (isBusLeg || isBoatLeg) ? C.teal : C.terracotta,
             weight: 3,
             opacity: isFlightLeg ? 0.5 : 0.6,
-            dashArray: isFlightLeg ? '8, 8' : isBusLeg ? '5, 5' : isBoatLeg ? '4, 6' : isCarLeg ? null : null
-          }
-        ).addTo(this.map);
+            dashArray: isFlightLeg ? '8, 8' : isBusLeg ? '5, 5' : isBoatLeg ? '4, 6' : isCarLeg ? null : null,
+            fill: false
+          },
+          side
+        );
 
-        // Transport-Badge am Mittelpunkt
-        addLegBadge(fromStop, toStop, leg);
+        // Transport-Badge am Kurven-Mittelpunkt
+        addLegBadge(fromStop, toStop, leg, side);
       });
     }
 
-    // Fallback: gestrichelte graue Linie für Paare ohne Leg
+    // Fallback: gestrichelte graue Kurve für Paare ohne Leg
     for (let i = 0; i < result.stops.length - 1; i++) {
       const a = result.stops[i];
       const b = result.stops[i + 1];
       const pairKey = `${a.lat},${a.lng}-${b.lat},${b.lng}`;
       if (!drawnPairs.has(pairKey)) {
-        L.polyline(
-          [[a.lat, a.lng], [b.lat, b.lng]],
-          { color: C.inkMuted, weight: 1.5, opacity: 0.4, dashArray: '6, 6' }
-        ).addTo(this.map);
+        drawCurve(
+          [a.lat, a.lng],
+          [b.lat, b.lng],
+          { color: C.inkMuted, weight: 1.5, opacity: 0.4, dashArray: '6, 6', fill: false }
+        );
       }
     }
 
@@ -375,6 +559,10 @@ const Results = {
     } else if (latlngs.length === 1) {
       this.map.setView(latlngs[0], 10);
     }
+
+    // Zoom-abhängige Marker: Thumbnails bei höherem Zoom laden
+    this.map.on('zoomend', () => this._updateMarkersForZoom());
+    this._loadStopThumbnails(result);
   },
 
   /**
@@ -523,7 +711,12 @@ const Results = {
 
       html += `
         <div class="overview-stop${isFirst ? ' overview-stop-first' : ''}${isLast ? ' overview-stop-last' : ''}" onclick="Results.selectStop(${i})">
-          <div class="overview-stop-num">${i + 1}</div>
+          <div class="overview-stop-marker">
+            <svg width="28" height="36" viewBox="0 0 36 48" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 47C18 47 34 28 34 18C34 8 27 1 18 1C9 1 2 8 2 18C2 28 18 47 18 47Z" fill="currentColor" stroke="white" stroke-width="2.5"/>
+              <text x="18" y="22" text-anchor="middle" fill="white" font-family="'Instrument Sans',sans-serif" font-weight="700" font-size="14">${i + 1}</text>
+            </svg>
+          </div>
           <div class="overview-stop-body">
             <div class="overview-stop-city">${stop.city}</div>
             <div class="overview-stop-meta">🌙 ${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'} · Tag ${startDay}–${startDay + stop.nights - 1}</div>
@@ -549,15 +742,13 @@ const Results = {
           const label = modeLabels[mode] || 'Zug';
           html += `
             <div class="overview-leg overview-leg-${mode}">
-              <span class="overview-leg-icon">${icon}</span>
-              <span>${label} · ${leg.duration} · ${leg.cost}</span>
+              <div class="overview-leg-badge">${icon} ${label} · ${leg.duration} · ${leg.cost}</div>
             </div>
           `;
         } else {
           html += `
             <div class="overview-leg">
-              <span class="overview-leg-icon">➜</span>
-              <span>Transfer</span>
+              <div class="overview-leg-badge overview-leg-badge-neutral">➜ Transfer</div>
             </div>
           `;
         }
@@ -1041,7 +1232,7 @@ const Results = {
   buildShareText(result) {
     const cc = CountryConfig.current;
     const brandEmoji = cc ? cc.brandEmoji : '🧭';
-    const brandName = cc ? cc.brandName : 'NomadRoute';
+    const brandName = cc ? cc.brandName : 'Routaris';
 
     const stops = result.stops.map((s, i) =>
       `${i + 1}. ${s.city} (${s.nights} ${s.nights === 1 ? 'Nacht' : 'Nächte'})`
@@ -1128,7 +1319,7 @@ const Results = {
     const textWithLink = shareUrl ? shareText + '\n\n' + shareUrl : shareText;
     const encodedText = encodeURIComponent(textWithLink);
     const cc = CountryConfig.current;
-    const brandName = cc ? cc.brandName : 'NomadRoute';
+    const brandName = cc ? cc.brandName : 'Routaris';
     const subject = encodeURIComponent(`${brandName}: ${result.routeName}`);
 
     // Web Share API verfügbar?
@@ -1184,7 +1375,7 @@ const Results = {
     if (!result) return;
     try {
       const cc = CountryConfig.current;
-      const brandName = cc ? cc.brandName : 'NomadRoute';
+      const brandName = cc ? cc.brandName : 'Routaris';
       const shareUrl = this.generateShareUrl();
       await navigator.share({
         title: `${brandName}: ${result.routeName}`,
@@ -1234,7 +1425,7 @@ const Results = {
     }
 
     const cc = CountryConfig.current;
-    const brandName = cc ? cc.brandName : 'NomadRoute';
+    const brandName = cc ? cc.brandName : 'Routaris';
     const brandEmoji = cc ? cc.brandEmoji : '🧭';
 
     // Route-Header
@@ -1309,6 +1500,7 @@ const Results = {
       this.map = null;
       this.markers = [];
     }
+    this.stopThumbnails = {};
     const overviewEl = document.getElementById('route-overview');
     if (overviewEl) overviewEl.innerHTML = '';
     const suggestionsEl = document.getElementById('suggestions-container');

@@ -1,4 +1,4 @@
-# Chile – Destination Research für NomadRoute
+# Chile – Destination Research für Routaris
 
 ## Übersicht
 - **15 Hauptziele** + **9 Off-the-beaten-path** = **24 Ziele gesamt**

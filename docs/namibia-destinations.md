@@ -1,4 +1,4 @@
-# Namibia – Destination Research für NomadRoute
+# Namibia – Destination Research für Routaris
 
 ## Übersicht
 - **15 Hauptziele** + **8 Off-the-beaten-path** = **23 Ziele gesamt**

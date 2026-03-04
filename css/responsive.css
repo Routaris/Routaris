@@ -141,7 +141,7 @@
   }
 
   .overview-journey::before {
-    left: 18px;
+    left: 21px;
     width: 2px;
   }
 
@@ -149,10 +149,18 @@
     padding: var(--space-md);
   }
 
-  .overview-stop-num {
-    width: 30px;
-    height: 30px;
-    font-size: 0.85rem;
+  .overview-stop-marker svg {
+    width: 22px;
+    height: 28px;
+  }
+
+  .overview-leg::before {
+    left: 5px;
+  }
+
+  .overview-leg-badge {
+    font-size: 0.7rem;
+    padding: 4px 10px;
   }
 
   .overview-stop-city {
@@ -365,6 +373,49 @@
 
   .share-panel {
     min-width: 160px;
+  }
+}
+
+/* --- Map Export Mobile (≤768px) --- */
+@media (max-width: 768px) {
+  .map-export-btn {
+    padding: 6px 10px;
+    font-size: 0.72rem;
+    gap: 4px;
+  }
+
+  .map-export-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .map-export-formats {
+    grid-template-columns: 1fr;
+  }
+
+  .map-export-format-btn {
+    flex-direction: row;
+    gap: var(--space-md);
+    padding: var(--space-md);
+  }
+
+  .map-export-format-preview {
+    flex-shrink: 0;
+  }
+
+  .map-export-preview-landscape {
+    width: 48px;
+    height: 25px;
+  }
+
+  .map-export-preview-square {
+    width: 36px;
+    height: 36px;
+  }
+
+  .map-export-preview-story {
+    width: 24px;
+    height: 42px;
   }
 }
 

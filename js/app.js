@@ -4,7 +4,7 @@
    ============================================ */
 
 const App = {
-  apiKey: 'AIzaSyBRWaRIfTE81BpNLUrvIsGdkQXPuIa3lGA',
+  apiKey: null,
   currentStep: 0,
 
   state: {
@@ -41,6 +41,13 @@ const App = {
   _isSharedView: false,
 
   init() {
+    // Migrate old localStorage key (NomadRoute → Routaris)
+    const oldFavs = localStorage.getItem('nomadroute-favorites');
+    if (oldFavs) {
+      localStorage.setItem('routaris-favorites', oldFavs);
+      localStorage.removeItem('nomadroute-favorites');
+    }
+
     this.bindNavigation();
     this.bindBasicsForm();
     this.initFavorites();
@@ -79,7 +86,7 @@ const App = {
 
   getFavorites() {
     try {
-      return JSON.parse(localStorage.getItem('nomadroute-favorites') || '[]');
+      return JSON.parse(localStorage.getItem('routaris-favorites') || '[]');
     } catch { return []; }
   },
 
@@ -95,7 +102,7 @@ const App = {
       btn.classList.add('active');
       btn.innerHTML = '❤️';
     }
-    localStorage.setItem('nomadroute-favorites', JSON.stringify(favs));
+    localStorage.setItem('routaris-favorites', JSON.stringify(favs));
     this.sortCountryCardsByFavorites();
   },
 
@@ -231,7 +238,7 @@ const App = {
     if (footerDesc) footerDesc.textContent = cc.brandDescription;
 
     // Page title
-    document.title = `NomadRoute – ${cc.brandName} | Reiseplaner für ${cc.name}`;
+    document.title = `Routaris – ${cc.brandName} | Reiseplaner für ${cc.name}`;
   },
 
   /**
@@ -1212,7 +1219,7 @@ const App = {
     }
     const footerDesc = document.getElementById('footer-desc');
     if (footerDesc) footerDesc.textContent = 'Personalisierte Routenplanung für Individualreisen';
-    document.title = 'NomadRoute – Dein Reiseplaner für Individualreisen';
+    document.title = 'Routaris – Dein Reiseplaner für Individualreisen';
 
     this.showStep(0);
   }

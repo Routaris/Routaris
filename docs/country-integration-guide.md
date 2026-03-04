@@ -1,6 +1,6 @@
 # Neues Land integrieren – Recherche & Implementierung
 
-Dieser Leitfaden definiert den vollständigen Workflow, um ein neues Land in NomadRoute einzubauen. Jeder Schritt muss abgearbeitet werden, bevor der nächste beginnt.
+Dieser Leitfaden definiert den vollständigen Workflow, um ein neues Land in Routaris einzubauen. Jeder Schritt muss abgearbeitet werden, bevor der nächste beginnt.
 
 ---
 

@@ -1,4 +1,4 @@
-# Mexiko Destinations Research – NomadRoute (Aztekenpfad)
+# Mexiko Destinations Research – Routaris (Aztekenpfad)
 
 ## Wikipedia-Verifikation
 

@@ -1,4 +1,4 @@
-# NomadRoute – KI-gestützter Reiseplaner
+# Routaris – KI-gestützter Reiseplaner
 
 ## Projektübersicht
 
@@ -14,7 +14,7 @@ C:\Users\puetz\Desktop\Reiselust\
 
 Alle visuellen Regeln (Farben, Typografie, Spacing, Komponenten, Schatten, Animationen, Do's & Don'ts) sind definiert in:
 
-> **`nomadroute-design-system.md`** — Single Source of Truth für Brand & Design
+> **`routaris-design-system.md`** — Single Source of Truth für Brand & Design
 
 Bei Änderungen am Design immer zuerst das Design-System konsultieren. CSS-Variablen in `css/base.css` müssen mit den Tokens aus dem Design-System übereinstimmen.
 
@@ -24,15 +24,18 @@ Alle Logos liegen im Ordner `CI/`:
 
 | Datei | Verwendung | Größe |
 |-------|-----------|-------|
-| `CI/Logo.png` | Original Icon-Logo (Globus, cream bg) | 2048×2048 |
-| `CI/Logo weiss.png` | Icon-Logo auf weißem Hintergrund | 2048×2048 |
-| `CI/Wordicon.png` | Original Wordmark (cream bg) | 3168×1344 |
-| `CI/logo-icon.png` | Web-optimiertes Icon (transparent) | 128×128 |
-| `CI/logo-icon-64.png` | Kleines Icon (Favicon-Größe) | 64×64 |
-| `CI/logo-icon-512.png` | Großes Icon (Social/OG) | 512×512 |
-| `CI/logo-header.png` | Wordmark für Header (transparent) | 250×106 |
-| `CI/logo-hero.png` | Wordmark für Hero-Sektion (transparent) | 450×190 |
-| `CI/logo-wordmark.png` | Wordmark groß (transparent) | 800×339 |
+| `CI/routaris-icon-flat.svg` | Flat Vector Icon (transparent) | SVG skalierbar |
+| `CI/routaris-icon-3d.png` | 3D App-Icon (Embossed) | 1024x1024 (approx) |
+| `CI/routaris-wordmark.svg` | Wordmark mit Tagline (transparent) | SVG skalierbar |
+| `CI/Logo.png` | Original Icon-Logo (Globus, cream bg) (alt/legacy) | 2048×2048 |
+| `CI/Logo weiss.png` | Icon-Logo auf weißem Hintergrund (alt/legacy) | 2048×2048 |
+| `CI/Wordicon.png` | Original Wordmark (cream bg) (alt/legacy) | 3168×1344 |
+| `CI/logo-icon.png` | Web-optimiertes Icon (transparent) (alt/legacy) | 128×128 |
+| `CI/logo-icon-64.png` | Kleines Icon (Favicon-Größe) (alt/legacy) | 64×64 |
+| `CI/logo-icon-512.png` | Großes Icon (Social/OG) (alt/legacy) | 512×512 |
+| `CI/logo-header.png` | Wordmark für Header (transparent) (alt/legacy) | 250×106 |
+| `CI/logo-hero.png` | Wordmark für Hero-Sektion (transparent) (alt/legacy) | 450×190 |
+| `CI/logo-wordmark.png` | Wordmark groß (transparent) (alt/legacy) | 800×339 |
 
 ## Tech Stack
 
@@ -49,7 +52,7 @@ Alle Logos liegen im Ordner `CI/`:
 C:\Users\puetz\Desktop\Reiselust\
 ├── index.html                    # Hauptseite, lädt alle CSS/JS Dateien
 ├── CLAUDE.md                     # Diese Datei (Projekt-Instruktionen)
-├── nomadroute-design-system.md   # Design-System & Brand Tokens
+├── routaris-design-system.md     # Design-System & Brand Tokens
 ├── CI/                           # Logo-Dateien (Originale + web-optimiert)
 ├── css/
 │   ├── base.css                  # Reset, CSS-Variablen, Typografie, Grain-Overlay

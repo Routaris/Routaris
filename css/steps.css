@@ -1220,10 +1220,155 @@
 
 /* Route Map */
 .result-map-wrap {
+  position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
   box-shadow: var(--shadow-md);
   margin-bottom: var(--space-xl);
+}
+
+/* Map Export Button */
+.map-export-btn {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  background: var(--white);
+  color: var(--ink);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transition: all var(--transition-fast);
+}
+
+.map-export-btn:hover {
+  background: var(--terracotta-pale);
+  border-color: var(--terracotta);
+  color: var(--terracotta);
+}
+
+.map-export-btn svg {
+  flex-shrink: 0;
+}
+
+/* Map Export Modal */
+.map-export-modal-inner {
+  max-width: 520px;
+  width: 90%;
+}
+
+.map-export-formats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-md);
+}
+
+.map-export-format-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-lg) var(--space-md);
+  background: var(--cream);
+  border: 2px solid var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-base);
+  font-family: var(--font-body);
+}
+
+.map-export-format-btn:hover {
+  border-color: var(--terracotta);
+  background: var(--terracotta-pale);
+}
+
+.map-export-format-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.map-export-format-preview {
+  background: var(--ink-muted);
+  border-radius: 4px;
+  opacity: 0.2;
+}
+
+.map-export-preview-landscape {
+  width: 72px;
+  height: 38px;
+}
+
+.map-export-preview-square {
+  width: 54px;
+  height: 54px;
+}
+
+.map-export-preview-story {
+  width: 36px;
+  height: 64px;
+}
+
+.map-export-format-label {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.map-export-format-desc {
+  font-size: 0.75rem;
+  color: var(--ink-muted);
+}
+
+.map-export-format-size {
+  font-size: 0.65rem;
+  color: var(--ink-light);
+  font-variant-numeric: tabular-nums;
+}
+
+.map-export-progress {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+  font-size: 0.85rem;
+  color: var(--ink-muted);
+}
+
+/* Export container tile warmth filter */
+.map-export-container .leaflet-tile-pane {
+  filter: saturate(0.85) sepia(0.08) brightness(1.02);
+}
+
+/* Export-specific overrides */
+.map-export-container .map-stop-label {
+  font-size: 0.6rem !important;
+  font-weight: 700 !important;
+  background: rgba(255, 255, 255, 0.82) !important;
+  padding: 2px 6px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08) !important;
+  letter-spacing: 0.01em !important;
+}
+
+.map-export-container .map-leg-badge-inner {
+  font-size: 0.55rem !important;
+  padding: 3px 7px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.12) !important;
+  letter-spacing: 0.01em !important;
+}
+
+.map-export-container .thumb-marker {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2), 0 0 0 2px white !important;
 }
 
 #result-map {
@@ -1457,17 +1602,17 @@
   padding-left: 24px;
 }
 
-/* Vertical connecting line */
+/* Vertical connecting line (subtle guide behind cards) */
 .overview-journey::before {
   content: '';
   position: absolute;
-  left: 41px;
+  left: 37px;
   top: 24px;
   bottom: 24px;
-  width: 2px;
+  width: 2.5px;
   background: linear-gradient(to bottom, var(--teal), var(--terracotta), var(--ink));
-  opacity: 0.15;
-  border-radius: 1px;
+  opacity: 0.12;
+  border-radius: 2px;
 }
 
 /* Stop Card */
@@ -1492,29 +1637,21 @@
   transform: translateX(4px);
 }
 
-.overview-stop-num {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  background: var(--terracotta);
-  color: var(--white);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-family: var(--font-display);
-  font-size: 1rem;
+.overview-stop-marker {
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(196, 101, 74, 0.25);
+  color: var(--terracotta);
+  line-height: 0;
+  filter: drop-shadow(0 2px 4px rgba(196, 101, 74, 0.25));
 }
 
-.overview-stop-first .overview-stop-num {
-  background: var(--teal);
-  box-shadow: 0 2px 8px rgba(42, 124, 118, 0.25);
+.overview-stop-first .overview-stop-marker {
+  color: var(--teal);
+  filter: drop-shadow(0 2px 4px rgba(42, 124, 118, 0.25));
 }
 
-.overview-stop-last .overview-stop-num {
-  background: var(--ink);
-  box-shadow: 0 2px 8px rgba(24, 23, 15, 0.25);
+.overview-stop-last .overview-stop-marker {
+  color: var(--ink);
+  filter: drop-shadow(0 2px 4px rgba(24, 23, 15, 0.25));
 }
 
 .overview-stop-body {
@@ -1580,42 +1717,102 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-sm);
-  padding: var(--space-sm) var(--space-lg);
-  font-size: 0.8rem;
-  font-weight: 500;
-  color: var(--ink-muted);
+  padding: var(--space-xs) var(--space-lg);
   position: relative;
   z-index: 1;
 }
 
-.overview-leg-icon {
-  font-size: 0.9rem;
+/* Per-leg mode-colored timeline connector */
+.overview-leg::before {
+  content: '';
+  position: absolute;
+  left: 13px;
+  top: 0;
+  bottom: 0;
+  width: 2.5px;
+  border-radius: 2px;
+  background: var(--border);
+  opacity: 0.15;
 }
 
-.overview-leg-train {
-  color: var(--ink-light);
+.overview-leg-train::before {
+  background: var(--ink-muted);
+  opacity: 0.3;
 }
 
-.overview-leg-flight {
-  color: var(--terracotta);
+.overview-leg-flight::before {
+  background: none;
+  border-left: 2.5px dashed var(--terracotta);
+  width: 0;
+  opacity: 0.4;
 }
 
-.overview-leg-bus,
-.overview-leg-sleeper_bus {
-  color: var(--teal);
+.overview-leg-bus::before,
+.overview-leg-sleeper_bus::before {
+  background: none;
+  border-left: 2.5px dashed var(--teal);
+  width: 0;
+  opacity: 0.35;
 }
 
-.overview-leg-boat {
-  color: var(--teal);
+.overview-leg-boat::before {
+  background: none;
+  border-left: 2.5px dotted var(--teal);
+  width: 0;
+  opacity: 0.35;
 }
 
-.overview-leg-car {
-  color: var(--car);
+.overview-leg-car::before {
+  background: var(--car);
+  opacity: 0.3;
 }
 
-.overview-leg-motorbike {
-  color: var(--terracotta);
+.overview-leg-motorbike::before {
+  background: var(--terracotta);
+  opacity: 0.3;
+}
+
+/* Transport badge pill (matching map badges) */
+.overview-leg-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  border-radius: 100px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+}
+
+.overview-leg-badge-neutral {
+  background: rgba(138, 133, 122, 0.55);
+}
+
+.overview-leg-train .overview-leg-badge {
+  background: rgba(40, 40, 35, 0.75);
+}
+
+.overview-leg-flight .overview-leg-badge {
+  background: rgba(196, 101, 74, 0.85);
+}
+
+.overview-leg-bus .overview-leg-badge,
+.overview-leg-sleeper_bus .overview-leg-badge {
+  background: rgba(42, 124, 118, 0.8);
+}
+
+.overview-leg-boat .overview-leg-badge {
+  background: rgba(31, 95, 90, 0.85);
+}
+
+.overview-leg-car .overview-leg-badge {
+  background: rgba(139, 105, 20, 0.85);
+}
+
+.overview-leg-motorbike .overview-leg-badge {
+  background: rgba(196, 101, 74, 0.8);
 }
 
 /* Overview Pill in Timeline */
@@ -2462,6 +2659,105 @@
   opacity: 0.3;
 }
 
+/* Premium Map Markers */
+.premium-marker {
+  background: none !important;
+  border: none !important;
+}
+
+.premium-marker svg {
+  overflow: visible;
+  transition: transform 0.15s ease;
+}
+
+.premium-marker:hover svg {
+  transform: scale(1.1) translateY(-2px);
+}
+
+/* Thumbnail Markers (zoom ≥ 7) */
+.thumb-marker {
+  position: relative;
+  border-radius: 50%;
+  overflow: visible;
+}
+
+.thumb-marker-img {
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid white;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  display: block;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.premium-thumb:hover .thumb-marker-img {
+  transform: scale(1.08);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+}
+
+.thumb-marker-badge {
+  position: absolute;
+  bottom: -2px;
+  right: -2px;
+  border-radius: 50%;
+  color: white;
+  font-weight: 700;
+  font-family: 'Instrument Sans', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  line-height: 1;
+}
+
+.thumb-marker-combi {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-radius: 100px;
+  padding: 0 8px;
+  color: white;
+  font-weight: 700;
+  font-family: 'Instrument Sans', sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  white-space: nowrap;
+  line-height: 1;
+}
+
+/* Permanent City Name Labels on Map */
+.map-stop-label {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--ink) !important;
+  font-family: 'Instrument Sans', sans-serif !important;
+  font-size: 0.72rem !important;
+  font-weight: 600 !important;
+  text-shadow:
+    0 0 3px rgba(255,255,255,0.95),
+    0 0 6px rgba(255,255,255,0.8),
+    0 1px 2px rgba(255,255,255,0.9) !important;
+  padding: 2px 0 !important;
+  white-space: nowrap !important;
+  text-align: center !important;
+}
+
+.map-stop-label::before {
+  display: none !important;
+}
+
+/* Map Tile Warmth Filter */
+.result-map-wrap .leaflet-tile-pane,
+.mustsee-map-wrap .leaflet-tile-pane {
+  filter: saturate(0.85) sepia(0.08) brightness(1.02);
+}
+
 /* Map City Labels (hover tooltips) */
 .map-city-label {
   background: rgba(40, 40, 35, 0.88) !important;
@@ -2660,7 +2956,7 @@
   .site-header, .site-footer, .progress-bar,
   .result-actions, .error-toast, .modal-backdrop,
   .suggestions-section, .route-adjust-section, .share-wrapper,
-  .stop-pills, .result-map-wrap,
+  .stop-pills, .result-map-wrap, .map-export-btn,
   .booking-links-section, .transport-booking-link {
     display: none !important;
   }

@@ -82,7 +82,7 @@ const PDFExport = {
 
       this.showProgress('PDF wird heruntergeladen...', 100);
       const cc = CountryConfig.current;
-      const brand = cc ? cc.brandName : 'NomadRoute';
+      const brand = cc ? cc.brandName : 'Routaris';
       const slug = (result.routeName || 'Route')
         .replace(/[^a-zA-Z\u00E4\u00F6\u00FC\u00C4\u00D6\u00DC\u00DF0-9\s]/g, '')
         .trim().replace(/\s+/g, '-').substring(0, 40);
@@ -314,7 +314,7 @@ const PDFExport = {
     doc.setFont(this.FB, 'normal');
     doc.setFontSize(9);
     doc.setTextColor(...C.inkMuted);
-    doc.text(cc ? cc.brandName : 'NomadRoute', this.PW / 2, y, { align: 'center' });
+    doc.text(cc ? cc.brandName : 'Routaris', this.PW / 2, y, { align: 'center' });
   },
 
   // ═══════════════════════════════════════
@@ -778,7 +778,7 @@ const PDFExport = {
     const C = this.C;
     this._bg(doc);
     const cc = CountryConfig.current;
-    const brand = cc ? cc.brandName : 'NomadRoute';
+    const brand = cc ? cc.brandName : 'Routaris';
 
     let y = this.PH / 2 - 45;
 
@@ -814,7 +814,7 @@ const PDFExport = {
     doc.text('Erstellt am ' + now.toLocaleDateString('de-DE', { day: '2-digit', month: 'long', year: 'numeric' }), this.PW / 2, y, { align: 'center' });
     y += 7;
     doc.setFontSize(8);
-    doc.text('nomadroute.com', this.PW / 2, y, { align: 'center' });
+    doc.text('routaris.com', this.PW / 2, y, { align: 'center' });
 
     y += 14;
     doc.setDrawColor(...C.border);
@@ -836,11 +836,11 @@ const PDFExport = {
 
   _header(doc) {
     const cc = CountryConfig.current;
-    const brand = cc ? cc.brandName : 'NomadRoute';
+    const brand = cc ? cc.brandName : 'Routaris';
     doc.setFont(this.FB, 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...this.C.inkMuted);
-    doc.text('NomadRoute  |  ' + brand, this.M, 10);
+    doc.text('Routaris  |  ' + brand, this.M, 10);
     doc.setDrawColor(...this.C.border);
     doc.setLineWidth(0.3);
     doc.line(this.M, 12, this.PW - this.M, 12);
@@ -855,7 +855,7 @@ const PDFExport = {
     doc.setFont(this.FB, 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...C.inkMuted);
-    doc.text('NomadRoute' + (cc ? '  |  ' + cc.brandName : ''), this.M, this.PH - 8);
+    doc.text('Routaris' + (cc ? '  |  ' + cc.brandName : ''), this.M, this.PH - 8);
     doc.text(page + ' / ' + total, this.PW - this.M, this.PH - 8, { align: 'right' });
   },
 

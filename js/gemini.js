@@ -463,20 +463,38 @@ Wichtig:
    * API-Call via Google AI Studio (Gemini) mit Retry bei Rate-Limit
    */
   async callGemini(prompt, retryCount = 0) {
-    const url = `${this.GEMINI_BASE_URL}${this.GEMINI_MODEL}:generateContent?key=${App.apiKey}`;
+    // Proxy-Modus (Vercel) oder Direkt-Modus (lokaler API-Key)
+    const useProxy = !App.apiKey;
 
-    const response = await this.fetchWithTimeout(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 65536,
-          responseMimeType: 'application/json'
-        }
-      })
-    });
+    let response;
+    if (useProxy) {
+      response = await this.fetchWithTimeout('/api/gemini', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt,
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 65536,
+            responseMimeType: 'application/json'
+          }
+        })
+      });
+    } else {
+      const url = `${this.GEMINI_BASE_URL}${this.GEMINI_MODEL}:generateContent?key=${App.apiKey}`;
+      response = await this.fetchWithTimeout(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: prompt }] }],
+          generationConfig: {
+            temperature: 0.7,
+            maxOutputTokens: 65536,
+            responseMimeType: 'application/json'
+          }
+        })
+      });
+    }
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
