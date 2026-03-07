@@ -248,10 +248,12 @@ const MapModule = {
 
     return `
       <div class="dest-card ${status}${dest.offbeat ? ' offbeat' : ''}" data-dest="${dest.id}"
+           role="button" tabindex="0" aria-label="${dest.name} ${isPinned ? 'angepinnt' : 'anpinnen'}"
            onclick="MapModule.togglePin('${dest.id}')"
+           onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();MapModule.togglePin('${dest.id}')}"
            onmouseenter="MapModule.highlightDest('${dest.id}')"
            onmouseleave="MapModule.unhighlightDest('${dest.id}')">
-        <img class="dest-card-img" data-wiki="${dest.id}" src="" alt="${dest.name}">
+        <img class="dest-card-img" data-wiki="${dest.id}" src="" alt="${dest.name}" title="Bild: Wikimedia Commons">
         <div class="dest-card-body">
           <div class="dest-card-name">${dest.name}</div>
           <div class="dest-card-desc">${dest.desc}</div>

@@ -178,7 +178,7 @@
         <span class="logo-subtitle" id="logo-subtitle"></span>
       </div>
       <nav class="header-nav">
-        <a href="#" onclick="if (App.currentStep > 0 && !confirm('Alle Eingaben gehen verloren. Möchtest du wirklich neu starten?')) return false; App.restart(); return false;">Neu starten</a>
+        <a href="#" onclick="App.confirmRestart(); return false;">Neu starten</a>
       </nav>
     </div>
   </header>
@@ -405,7 +405,7 @@
               <label class="custom-airport-label" for="custom-return-airport">Anderer Abreiseort:</label>
               <input type="text" class="form-input" id="custom-return-airport"
                      aria-label="Anderer Abreiseort"
-                     placeholder="z.B. Kunming, Grenze nach Laos...">
+                     placeholder="z.B. anderer Flughafen, Grenzübergang...">
             </div>
           </div>
 
@@ -759,9 +759,11 @@
       <span id="footer-desc">Personalisierte Routenplanung für Individualreisen</span>
       <span>|</span>
       <a href="#" onclick="document.getElementById('about-modal').classList.add('active'); return false;" style="color: var(--ink-muted); text-decoration: underline; text-underline-offset: 2px;">Über uns</a>
+      <span>|</span>
+      <a href="#" onclick="document.getElementById('impressum-modal').classList.add('active'); return false;" style="color: var(--ink-muted); text-decoration: underline; text-underline-offset: 2px;">Impressum &amp; Datenschutz</a>
     </div>
     <div class="footer-credits" style="text-align:center;padding:0.5rem 1rem 1rem;font-size:0.75rem;color:var(--ink-muted);opacity:0.6;line-height:1.6">
-      Fotos: <a href="https://unsplash.com" target="_blank" rel="noopener" style="color:inherit">Unsplash</a> · Ortsbilder: <a href="https://commons.wikimedia.org" target="_blank" rel="noopener" style="color:inherit">Wikimedia Commons</a> · Karten: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit">&copy; OpenStreetMap</a> · <a href="https://carto.com/attributions" target="_blank" rel="noopener" style="color:inherit">&copy; CARTO</a>
+      Fotos: <a href="https://unsplash.com" target="_blank" rel="noopener" style="color:inherit">Unsplash</a> · Ortsbilder: <a href="https://commons.wikimedia.org" target="_blank" rel="noopener" style="color:inherit">Wikimedia Commons</a> (CC BY-SA) · Karten: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit">&copy; OpenStreetMap</a> (ODbL) · <a href="https://carto.com/attributions" target="_blank" rel="noopener" style="color:inherit">&copy; CARTO</a>
     </div>
   </footer>
 
@@ -788,6 +790,66 @@
         <h4>Warum wir das teilen</h4>
         <p>Wir fanden die Seite für unsere eigene Planung so hilfreich, dass wir dachten: Das können bestimmt auch andere gebrauchen. Also haben wir uns drangesetzt und das, was mit China für uns selbst begann, richtig aufgebaut und für weitere Länder ausgerollt.</p>
         <p>Das Ergebnis ist <strong>Routaris</strong>. Wir hoffen, damit allen Reisenden tolle Erlebnisse und Spaß bei der Planung zu verschaffen. Und vielleicht bewegt es den ein oder anderen, der sich nicht traut, mit einer guten Planung doch den Schritt zu wagen — auch mit kleinem Kind die Welt zu entdecken.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ======= IMPRESSUM & DATENSCHUTZ MODAL ======= -->
+  <div id="impressum-modal" class="modal-backdrop" onclick="if(event.target===this)this.classList.remove('active')">
+    <div class="modal about-modal" style="max-width: 680px;">
+      <button class="about-modal-close" onclick="document.getElementById('impressum-modal').classList.remove('active')" aria-label="Schließen">&times;</button>
+      <div class="about-modal-body" style="padding: var(--space-xl);">
+
+        <h3 style="margin-bottom: var(--space-lg);">Impressum</h3>
+        <p><strong>Angaben gemäß § 5 TMG / § 18 Abs. 2 MStV</strong></p>
+        <p>
+          [Vorname Nachname]<br>
+          [Straße Hausnummer]<br>
+          [PLZ Ort]<br>
+          Deutschland
+        </p>
+        <p>
+          <strong>Kontakt:</strong><br>
+          E-Mail: [E-Mail-Adresse]
+        </p>
+        <p>
+          <strong>Verantwortlich für den Inhalt nach § 18 Abs. 2 MStV:</strong><br>
+          [Vorname Nachname], Anschrift wie oben
+        </p>
+
+        <hr style="border: none; border-top: 1px solid var(--border); margin: var(--space-xl) 0;">
+
+        <h3 style="margin-bottom: var(--space-lg);">Datenschutzerklärung</h3>
+
+        <h4>1. Verantwortliche Stelle</h4>
+        <p>Verantwortlich für die Datenverarbeitung auf dieser Website ist die im Impressum genannte Person.</p>
+
+        <h4>2. Erhebung und Speicherung personenbezogener Daten</h4>
+        <p>Diese Website speichert <strong>keine personenbezogenen Daten</strong> in Datenbanken. Es werden keine Nutzerkonten angelegt und keine Cookies zu Tracking-Zwecken gesetzt.</p>
+
+        <h4>3. API-Schlüssel</h4>
+        <p>Falls Sie einen eigenen Google Gemini API-Schlüssel eingeben, wird dieser ausschließlich im Arbeitsspeicher Ihres Browsers gehalten und <strong>nicht gespeichert, nicht an Dritte weitergegeben</strong> und beim Schließen des Tabs gelöscht.</p>
+
+        <h4>4. Externe Dienste</h4>
+        <p>Diese Website nutzt folgende externe Dienste:</p>
+        <ul style="list-style: disc; padding-left: 1.5rem; margin-bottom: var(--space-md);">
+          <li><strong>Google Gemini API</strong> — zur KI-gestützten Routenplanung. Ihre Reisepräferenzen werden an Google gesendet. Es gelten die <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color: var(--teal); text-decoration: underline;">Datenschutzbestimmungen von Google</a>.</li>
+          <li><strong>Wikipedia/Wikimedia REST API</strong> — zum Laden von Ortsbildern. Es werden keine personenbezogenen Daten übermittelt.</li>
+          <li><strong>CARTO / OpenStreetMap</strong> — zur Kartendarstellung. Es gelten die Datenschutzbestimmungen von <a href="https://carto.com/privacy/" target="_blank" rel="noopener" style="color: var(--teal); text-decoration: underline;">CARTO</a> und <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener" style="color: var(--teal); text-decoration: underline;">OpenStreetMap</a>.</li>
+          <li><strong>Google Fonts</strong> — zur Schriftarten-Darstellung. Beim Laden werden Ihre IP-Adresse und Browser-Daten an Google übermittelt. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color: var(--teal); text-decoration: underline;">Datenschutzerklärung von Google</a>.</li>
+          <li><strong>Vercel</strong> — als Hosting-Anbieter. Es gelten die <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener" style="color: var(--teal); text-decoration: underline;">Datenschutzbestimmungen von Vercel</a>.</li>
+        </ul>
+
+        <h4>5. Hosting</h4>
+        <p>Diese Website wird bei Vercel Inc. gehostet. Beim Besuch der Website werden automatisch Server-Logdaten erhoben (IP-Adresse, Browsertyp, Zeitpunkt des Zugriffs). Diese Daten werden von Vercel verarbeitet und sind für den technischen Betrieb erforderlich (Art. 6 Abs. 1 lit. f DSGVO).</p>
+
+        <h4>6. Ihre Rechte</h4>
+        <p>Sie haben das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung Ihrer Daten sowie das Recht auf Datenübertragbarkeit und Beschwerde bei einer Aufsichtsbehörde. Da wir keine personenbezogenen Daten speichern, fallen diese Rechte in der Praxis nicht an.</p>
+
+        <h4>7. Änderungen</h4>
+        <p>Wir behalten uns vor, diese Datenschutzerklärung bei Bedarf anzupassen, um sie an geänderte Rechtslagen oder Änderungen des Dienstes anzupassen.</p>
+
+        <p style="margin-top: var(--space-lg); color: var(--ink-muted); font-size: 0.8rem;">Stand: März 2026</p>
       </div>
     </div>
   </div>

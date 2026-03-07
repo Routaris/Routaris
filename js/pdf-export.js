@@ -822,7 +822,7 @@ const PDFExport = {
     y += 8;
     doc.setFontSize(7);
     doc.setTextColor(...C.inkMuted);
-    doc.text('Bilder: Wikipedia Commons | Karten: OpenStreetMap/CARTO | KI: Google Gemini', this.PW / 2, y, { align: 'center' });
+    doc.text('Bilder: Wikimedia Commons (CC) | Karten: © OpenStreetMap / © CARTO | KI: Google Gemini', this.PW / 2, y, { align: 'center' });
   },
 
   // ═══════════════════════════════════════

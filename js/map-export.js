@@ -488,9 +488,14 @@ const MapExport = {
           ${season ? `<span style="color: #D4D0C8;">·</span><span>🗓 ${season}</span>` : ''}
         </div>
 
-        <!-- URL -->
-        <div style="margin-top: auto; padding-top: ${f.gap}px; font-size: ${f.urlFz}; color: #B5B0A5; letter-spacing: 0.06em; text-transform: lowercase;">
-          Geplant mit routaris.com
+        <!-- URL + Attribution -->
+        <div style="margin-top: auto; padding-top: ${f.gap}px; text-align: center; line-height: 1.6;">
+          <div style="font-size: ${f.urlFz}; color: #B5B0A5; letter-spacing: 0.06em; text-transform: lowercase;">
+            Geplant mit routaris.com
+          </div>
+          <div style="font-size: ${isStory ? '0.5rem' : isSquare ? '0.42rem' : '0.38rem'}; color: #C8C4BC; letter-spacing: 0.03em;">
+            Karte: © OpenStreetMap · © CARTO · Ortsbilder: Wikimedia Commons (CC)
+          </div>
         </div>
       </div>
     `;

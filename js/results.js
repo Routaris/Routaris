@@ -50,9 +50,10 @@ const Results = {
    */
   matchCity(a, b) {
     if (!a || !b) return false;
-    const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[-''`]/g, ' ').replace(/\s+/g, ' ').trim();
+    const normalize = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[-''`]/g, ' ').replace(/\(.*?\)/g, '').replace(/\s+/g, ' ').trim();
     const na = normalize(a);
     const nb = normalize(b);
+    if (na === nb) return true;
     const firstA = na.split(/[\s\/,]+/)[0];
     const firstB = nb.split(/[\s\/,]+/)[0];
     return firstA === firstB
@@ -555,7 +556,7 @@ const Results = {
 
     // Karte auf Route fitten
     if (latlngs.length > 1) {
-      this.map.fitBounds(L.latLngBounds(latlngs).pad(0.15));
+      this.map.fitBounds(L.latLngBounds(latlngs).pad(0.06));
     } else if (latlngs.length === 1) {
       this.map.setView(latlngs[0], 10);
     }
@@ -614,7 +615,9 @@ const Results = {
             <span class="stop-connector-line"></span>
           </div>`;
         } else {
-          html += `<div class="stop-connector">
+          html += `<div class="stop-connector stop-connector-transfer">
+            <span class="stop-connector-line"></span>
+            <span class="stop-connector-label">→ Transfer</span>
             <span class="stop-connector-line"></span>
           </div>`;
         }
@@ -673,7 +676,7 @@ const Results = {
     // Karte zum Stopp fliegen
     const stop = result.stops[index];
     if (this.map && stop) {
-      this.map.flyTo([stop.lat, stop.lng], 8, { duration: 1 });
+      this.map.flyTo([stop.lat, stop.lng], 8, { duration: 0.6 });
     }
 
     // Zum Detail scrollen
@@ -783,7 +786,7 @@ const Results = {
     const result = App.state.result;
     if (this.map && result && result.stops.length > 1) {
       const latlngs = result.stops.map(s => [s.lat, s.lng]);
-      this.map.fitBounds(L.latLngBounds(latlngs).pad(0.15));
+      this.map.fitBounds(L.latLngBounds(latlngs).pad(0.06));
     }
 
     // Zur Übersicht scrollen
@@ -814,6 +817,7 @@ const Results = {
           <div class="stop-hero-overlay">
             <span class="stop-hero-label">${stop.city}</span>
           </div>
+          <span class="stop-hero-credit">© Wikimedia Commons</span>
         </div>
 
         <!-- Header -->
@@ -831,7 +835,7 @@ const Results = {
         <div class="highlights-grid">
           ${(stop.highlights || []).map((h, i) => `
             <div class="highlight-card" id="highlight-card-${index}-${i}">
-              <img class="highlight-card-img" id="highlight-img-${index}-${i}" alt="${h.title}" onerror="this.style.display='none'">
+              <img class="highlight-card-img" id="highlight-img-${index}-${i}" alt="${h.title}" title="Bild: Wikimedia Commons" onerror="this.style.display='none'">
               <div class="highlight-icon">${h.icon || '📍'}</div>
               <div class="highlight-title">${h.title}</div>
               <div class="highlight-desc">${h.description}</div>
@@ -1148,7 +1152,7 @@ const Results = {
           ${suggestions.map((s, i) => `
             <div class="suggestion-card" data-suggestion-index="${i}">
               <div class="suggestion-img-wrap">
-                <img class="suggestion-img" id="suggestion-img-${i}" alt="${s.dest.name}"
+                <img class="suggestion-img" id="suggestion-img-${i}" alt="${s.dest.name}" title="Bild: Wikimedia Commons"
                      onerror="this.style.display='none'; this.parentElement.classList.remove('loaded'); this.parentElement.classList.add('no-image')">
               </div>
               <div class="suggestion-body">
@@ -1156,7 +1160,7 @@ const Results = {
                 <div class="suggestion-reason">${s.reason}</div>
                 <div class="suggestion-highlights">${s.dest.highlights}</div>
                 <div class="suggestion-footer">
-                  <span class="suggestion-nights">empf. ${s.extraNights}N</span>
+                  <span class="suggestion-nights">empf. ${s.extraNights} ${s.extraNights === 1 ? 'Nacht' : 'Nächte'}</span>
                   <button class="btn suggestion-accept-btn" onclick="Suggestions.accept(${i})">
                     Zur Route hinzufügen
                   </button>
@@ -1221,7 +1225,13 @@ const Results = {
     if (!textarea) return;
 
     const text = textarea.value.trim();
-    if (!text) return;
+    if (!text) {
+      textarea.style.borderColor = 'var(--terracotta)';
+      textarea.setAttribute('placeholder', 'Bitte beschreibe zuerst, was du ändern möchtest...');
+      textarea.focus();
+      setTimeout(() => { textarea.style.borderColor = ''; }, 2000);
+      return;
+    }
 
     App.adjustRoute(text);
   },

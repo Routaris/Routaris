@@ -299,7 +299,7 @@ const App = {
 
     // Bei Loading (4) und Ergebnis (5) immer nach oben scrollen
     if (step === 4 || step === 5) {
-      window.scrollTo({ top: 0 });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
     // Header-Modus: transparent auf Hero, normal auf anderen Steps
@@ -639,8 +639,7 @@ const App = {
         this.showStep(1);
       }
       if (e.target.closest('[data-action="restart"]')) {
-        if (this.currentStep > 0 && !confirm('Alle Eingaben gehen verloren. Möchtest du wirklich neu starten?')) return;
-        this.restart();
+        this.confirmRestart();
       }
     });
 
@@ -1153,6 +1152,38 @@ const App = {
     if (nextBtn) nextBtn.textContent = 'Weiter zur Kartenauswahl';
 
     // Preference Sliders werden durch Preferences.render() beim nächsten Step-2-Besuch neu gerendert
+  },
+
+  /**
+   * Bestätigt den Neustart über ein eigenes Modal statt browser-confirm()
+   */
+  confirmRestart() {
+    if (this.currentStep === 0) {
+      this.restart();
+      return;
+    }
+
+    const existing = document.getElementById('restart-confirm-modal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'restart-confirm-modal';
+    modal.className = 'modal-backdrop active';
+    modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+    modal.innerHTML = `
+      <div class="modal" style="max-width: 420px; text-align: center; padding: var(--space-2xl);">
+        <div style="font-size: 2rem; margin-bottom: var(--space-md);">🔄</div>
+        <h3 style="margin-bottom: var(--space-sm);">Neu starten?</h3>
+        <p style="color: var(--ink-muted); margin-bottom: var(--space-xl); font-size: 0.9rem;">
+          Deine bisherigen Eingaben und die aktuelle Route gehen verloren.
+        </p>
+        <div style="display: flex; gap: var(--space-md); justify-content: center;">
+          <button class="btn btn-outline" onclick="document.getElementById('restart-confirm-modal').remove()">Abbrechen</button>
+          <button class="btn" onclick="document.getElementById('restart-confirm-modal').remove(); App.restart();">Ja, neu starten</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(modal);
   },
 
   /**

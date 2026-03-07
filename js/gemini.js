@@ -451,7 +451,7 @@ Wichtig:
       return response;
     } catch (err) {
       if (err.name === 'AbortError') {
-        throw new Error(`Timeout nach ${this.FETCH_TIMEOUT_MS / 1000}s`);
+        throw new Error('Die Routenplanung hat zu lange gedauert. Bitte versuche es erneut.');
       }
       throw err;
     } finally {
