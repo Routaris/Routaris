@@ -6,9 +6,9 @@
 const MapExport = {
 
   SIZES: {
-    landscape: { w: 1200, h: 630, label: 'Querformat', desc: 'Social Media / OG', mapRatio: 0.75 },
-    square:    { w: 1080, h: 1080, label: 'Quadrat', desc: 'Instagram Post', mapRatio: 0.68 },
-    story:     { w: 1080, h: 1920, label: 'Story', desc: 'Instagram / WhatsApp', mapRatio: 0.58 }
+    landscape: { w: 1200, h: 630, label: 'Querformat', desc: 'Social Media / OG', mapRatio: 0.72 },
+    square:    { w: 1080, h: 1080, label: 'Quadrat', desc: 'Instagram Post', mapRatio: 0.72 },
+    story:     { w: 1080, h: 1920, label: 'Story', desc: 'Instagram / WhatsApp', mapRatio: 0.68 }
   },
 
   /**
@@ -122,12 +122,15 @@ const MapExport = {
           : Results.createPremiumMarker(i + 1, color, false);
         const m = L.marker([stop.lat, stop.lng], { icon }).addTo(map);
 
-        // City-Label (alternierend für weniger Overlap)
-        const labelDir = (i % 2 === 0) ? 'bottom' : 'right';
+        // City-Label – optimale Richtung basierend auf Nachbar-Stopps
+        const labelDir = this._optimalLabelDir(result.stops, i);
         const hasThumb = useThumbExport && thumb;
-        const labelOff = labelDir === 'bottom'
-          ? [0, hasThumb ? thumbSize / 2 + 4 : 4]
-          : [hasThumb ? thumbSize / 2 + 6 : 14, hasThumb ? 0 : -20];
+        const th = hasThumb ? thumbSize / 2 : 0;
+        const labelOff =
+          labelDir === 'bottom' ? [0, th + 10] :
+          labelDir === 'top'    ? [0, -(th + 10)] :
+          labelDir === 'right'  ? [th + 18, hasThumb ? 0 : -20] :
+                                  [-(th + 18), hasThumb ? 0 : -20];
         m.bindTooltip(stop.city, {
           permanent: true, direction: labelDir, offset: labelOff,
           className: 'map-stop-label'
@@ -202,7 +205,7 @@ const MapExport = {
             icon: L.divIcon({
               className: 'map-leg-badge',
               html: `<div class="map-leg-badge-inner map-leg-badge-${legMode}">${bIcon} ${leg.duration}</div>`,
-              iconSize: [80, 24], iconAnchor: [40, 12]
+              iconSize: [70, 20], iconAnchor: [35, 10]
             }),
             interactive: false, zIndexOffset: -100
           }).addTo(map);
@@ -229,7 +232,7 @@ const MapExport = {
 
       // Karte fitten
       if (latlngs.length > 1) {
-        map.fitBounds(L.latLngBounds(latlngs).pad(0.18));
+        map.fitBounds(L.latLngBounds(latlngs).pad(0.25));
       } else if (latlngs.length === 1) {
         map.setView(latlngs[0], 10);
       }
@@ -281,6 +284,36 @@ const MapExport = {
       }
       const modal = document.getElementById('map-export-modal');
       if (modal) modal.remove();
+    }
+  },
+
+  /**
+   * Berechnet die optimale Label-Richtung basierend auf Nachbar-Stopps.
+   * Platziert das Label weg vom Schwerpunkt der umliegenden Stopps.
+   */
+  _optimalLabelDir(stops, idx) {
+    const curr = stops[idx];
+    const neighbors = [];
+    // Berücksichtige direkte Nachbarn (±2 Stopps)
+    for (let j = Math.max(0, idx - 2); j <= Math.min(stops.length - 1, idx + 2); j++) {
+      if (j === idx) continue;
+      neighbors.push(stops[j]);
+    }
+    if (neighbors.length === 0) return 'bottom';
+
+    // Schwerpunkt der Nachbarn
+    const cLat = neighbors.reduce((s, n) => s + n.lat, 0) / neighbors.length;
+    const cLng = neighbors.reduce((s, n) => s + n.lng, 0) / neighbors.length;
+
+    // Vektor vom Schwerpunkt weg
+    const dLat = curr.lat - cLat;
+    const dLng = curr.lng - cLng;
+
+    // Wähle Richtung mit größter Komponente (weg von Nachbarn)
+    if (Math.abs(dLat) > Math.abs(dLng)) {
+      return dLat > 0 ? 'top' : 'bottom';
+    } else {
+      return dLng > 0 ? 'right' : 'left';
     }
   },
 
@@ -422,7 +455,7 @@ const MapExport = {
         </div>
 
         <!-- URL -->
-        <div style="margin-top: auto; font-size: ${f.urlFz}; color: #B5B0A5; letter-spacing: 0.06em; text-transform: lowercase;">
+        <div style="margin-top: auto; padding-top: ${f.gap}px; font-size: ${f.urlFz}; color: #B5B0A5; letter-spacing: 0.06em; text-transform: lowercase;">
           Geplant mit routaris.com
         </div>
       </div>
