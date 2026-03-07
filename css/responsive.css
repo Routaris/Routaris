@@ -603,4 +603,10 @@
     right: 0;
     transform: none;
   }
+
+  .cookie-banner-inner {
+    flex-direction: column;
+    text-align: center;
+    gap: var(--space-sm);
+  }
 }

@@ -921,3 +921,47 @@ select.form-input {
   color: var(--ink-muted);
   min-height: 1.2em;
 }
+
+/* --- Cookie Banner --- */
+.cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 9999;
+  background: var(--ink);
+  color: var(--cream);
+  padding: var(--space-sm) var(--space-md);
+  box-shadow: 0 -2px 12px rgba(0,0,0,0.15);
+  animation: fadeSlideIn 0.4s ease;
+}
+.cookie-banner-inner {
+  max-width: 960px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+.cookie-banner-inner p {
+  flex: 1;
+  margin: 0;
+}
+.cookie-banner-inner button {
+  flex-shrink: 0;
+  padding: 8px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--teal);
+  color: white;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 0.82rem;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.2s;
+}
+.cookie-banner-inner button:hover {
+  background: var(--teal-dark);
+}

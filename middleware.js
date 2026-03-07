@@ -50,12 +50,11 @@ function loginPage(error) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Routaris Beta</title>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Instrument+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#1a1a2e;font-family:'Instrument Sans',sans-serif}
+    body{min-height:100vh;display:flex;align-items:center;justify-content:center;background:#1a1a2e;font-family:system-ui,-apple-system,sans-serif}
     .gate{text-align:center;color:#fff;max-width:360px;padding:2rem}
-    .gate h1{font-family:'DM Serif Display',serif;font-size:1.8rem;margin:1rem 0 0.5rem}
+    .gate h1{font-size:1.8rem;margin:1rem 0 0.5rem;font-weight:700}
     .gate p{opacity:0.7;margin-bottom:1.5rem}
     .gate input{width:100%;padding:12px 16px;border-radius:12px;border:2px solid #333;background:#0d0d1a;color:#fff;font-size:1rem;text-align:center;outline:none}
     .gate input:focus{border-color:#4ecdc4}

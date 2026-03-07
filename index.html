@@ -6,10 +6,7 @@
   <title>Routaris – Dein Reiseplaner für Individualreisen</title>
   <meta name="description" content="Routaris – Personalisierte Routenplanung für Individualreisen">
 
-  <!-- Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Fonts: self-hosted (DSGVO-konform, kein Google-CDN) -->
 
   <!-- Leaflet -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
@@ -760,7 +757,7 @@
       <span>|</span>
       <a href="#" onclick="document.getElementById('about-modal').classList.add('active'); return false;" style="color: var(--ink-muted); text-decoration: underline; text-underline-offset: 2px;">Über uns</a>
       <span>|</span>
-      <a href="#" onclick="document.getElementById('impressum-modal').classList.add('active'); return false;" style="color: var(--ink-muted); text-decoration: underline; text-underline-offset: 2px;">Impressum &amp; Datenschutz</a>
+      <a href="#" onclick="document.getElementById('impressum-modal').classList.add('active'); return false;" style="color: var(--ink-muted); text-decoration: underline; text-underline-offset: 2px;">Impressum &amp; Rechtliches</a>
     </div>
     <div class="footer-credits" style="text-align:center;padding:0.5rem 1rem 1rem;font-size:0.75rem;color:var(--ink-muted);opacity:0.6;line-height:1.6">
       Fotos: <a href="https://unsplash.com" target="_blank" rel="noopener" style="color:inherit">Unsplash</a> · Ortsbilder: <a href="https://commons.wikimedia.org" target="_blank" rel="noopener" style="color:inherit">Wikimedia Commons</a> (CC BY-SA) · Karten: <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener" style="color:inherit">&copy; OpenStreetMap</a> (ODbL) · <a href="https://carto.com/attributions" target="_blank" rel="noopener" style="color:inherit">&copy; CARTO</a>
@@ -836,7 +833,7 @@
           <li><strong>Google Gemini API</strong> — zur KI-gestützten Routenplanung. Ihre Reisepräferenzen werden an Google gesendet. Es gelten die <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color: var(--teal); text-decoration: underline;">Datenschutzbestimmungen von Google</a>.</li>
           <li><strong>Wikipedia/Wikimedia REST API</strong> — zum Laden von Ortsbildern. Es werden keine personenbezogenen Daten übermittelt.</li>
           <li><strong>CARTO / OpenStreetMap</strong> — zur Kartendarstellung. Es gelten die Datenschutzbestimmungen von <a href="https://carto.com/privacy/" target="_blank" rel="noopener" style="color: var(--teal); text-decoration: underline;">CARTO</a> und <a href="https://wiki.osmfoundation.org/wiki/Privacy_Policy" target="_blank" rel="noopener" style="color: var(--teal); text-decoration: underline;">OpenStreetMap</a>.</li>
-          <li><strong>Google Fonts</strong> — zur Schriftarten-Darstellung. Beim Laden werden Ihre IP-Adresse und Browser-Daten an Google übermittelt. <a href="https://policies.google.com/privacy" target="_blank" rel="noopener" style="color: var(--teal); text-decoration: underline;">Datenschutzerklärung von Google</a>.</li>
+          <li><strong>Schriftarten</strong> — Die verwendeten Schriftarten (DM Serif Display, Instrument Sans) werden lokal von unserem Server geladen. Es findet <strong>keine Verbindung zu Google Fonts</strong> statt.</li>
           <li><strong>Vercel</strong> — als Hosting-Anbieter. Es gelten die <a href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noopener" style="color: var(--teal); text-decoration: underline;">Datenschutzbestimmungen von Vercel</a>.</li>
         </ul>
 
@@ -846,13 +843,68 @@
         <h4>6. Ihre Rechte</h4>
         <p>Sie haben das Recht auf Auskunft, Berichtigung, Löschung und Einschränkung der Verarbeitung Ihrer Daten sowie das Recht auf Datenübertragbarkeit und Beschwerde bei einer Aufsichtsbehörde. Da wir keine personenbezogenen Daten speichern, fallen diese Rechte in der Praxis nicht an.</p>
 
-        <h4>7. Änderungen</h4>
+        <h4>7. Cookies</h4>
+        <p>Diese Website verwendet ausschließlich <strong>technisch notwendige Cookies</strong>. Ein Cookie (<code>routaris_auth</code>) kann gesetzt werden, um den Zugang zur Website zu ermöglichen. Es werden keine Tracking- oder Marketing-Cookies eingesetzt. Sie können Cookies in Ihren Browser-Einstellungen jederzeit löschen.</p>
+
+        <h4>8. Änderungen</h4>
         <p>Wir behalten uns vor, diese Datenschutzerklärung bei Bedarf anzupassen, um sie an geänderte Rechtslagen oder Änderungen des Dienstes anzupassen.</p>
+
+        <hr style="border: none; border-top: 1px solid var(--border); margin: var(--space-xl) 0;">
+
+        <h3 style="margin-bottom: var(--space-lg);">Nutzungsbedingungen</h3>
+
+        <h4>1. Geltungsbereich</h4>
+        <p>Diese Nutzungsbedingungen gelten für die Nutzung der Website routaris.com (nachfolgend „Dienst"). Mit der Nutzung des Dienstes erklären Sie sich mit diesen Bedingungen einverstanden.</p>
+
+        <h4>2. Leistungsbeschreibung</h4>
+        <p>Routaris ist ein kostenloser, KI-gestützter Reiseplaner, der personalisierte Routenvorschläge für Individualreisen erstellt. Die generierten Routen dienen ausschließlich als <strong>Inspiration und Orientierungshilfe</strong>.</p>
+
+        <h4>3. KI-generierte Inhalte</h4>
+        <p>Die Routenvorschläge werden durch künstliche Intelligenz (Google Gemini) erzeugt. Trotz sorgfältiger Gestaltung der Abfragen können die Ergebnisse <strong>Fehler, Ungenauigkeiten oder veraltete Informationen</strong> enthalten. Insbesondere:</p>
+        <ul style="list-style: disc; padding-left: 1.5rem; margin-bottom: var(--space-md);">
+          <li>Reisezeiten, Kosten und Transportverbindungen können von der Realität abweichen</li>
+          <li>Öffnungszeiten, Visa-Bestimmungen und Einreiseregeln können sich ändern</li>
+          <li>Sicherheitslagen vor Ort können von den Angaben abweichen</li>
+        </ul>
+        <p>Wir empfehlen, alle Angaben vor Reiseantritt über offizielle Quellen (Auswärtiges Amt, lokale Tourismusbehörden, Transportunternehmen) zu verifizieren.</p>
+
+        <h4>4. Keine Reiseberatung</h4>
+        <p>Routaris stellt <strong>keine professionelle Reiseberatung</strong> dar und ersetzt nicht die Beratung durch ein Reisebüro oder andere Fachleute. Die Nutzung der generierten Routen erfolgt auf eigene Verantwortung.</p>
+
+        <h4>5. Haftungsausschluss</h4>
+        <p>Die Betreiber übernehmen keine Haftung für:</p>
+        <ul style="list-style: disc; padding-left: 1.5rem; margin-bottom: var(--space-md);">
+          <li>Richtigkeit, Vollständigkeit oder Aktualität der KI-generierten Routenvorschläge</li>
+          <li>Schäden, die durch die Befolgung der Routenvorschläge entstehen</li>
+          <li>Verfügbarkeit des Dienstes oder der eingebundenen Drittanbieter-APIs</li>
+          <li>Datenverlust bei der Nutzung des Dienstes</li>
+        </ul>
+
+        <h4>6. Urheberrecht</h4>
+        <p>Die Inhalte dieser Website (Design, Code, Texte) unterliegen dem Urheberrecht. Von Nutzern generierte Routen dürfen frei geteilt und verwendet werden. Bei Weitergabe von exportierten Routen bitten wir um Nennung von Routaris als Quelle.</p>
+
+        <h4>7. Änderungen der Nutzungsbedingungen</h4>
+        <p>Wir behalten uns vor, diese Nutzungsbedingungen jederzeit zu ändern. Die jeweils aktuelle Fassung ist auf dieser Website abrufbar.</p>
 
         <p style="margin-top: var(--space-lg); color: var(--ink-muted); font-size: 0.8rem;">Stand: März 2026</p>
       </div>
     </div>
   </div>
+
+  <!-- ======= COOKIE BANNER ======= -->
+  <div id="cookie-banner" class="cookie-banner" role="dialog" aria-label="Cookie-Hinweis" style="display:none;">
+    <div class="cookie-banner-inner">
+      <p>Diese Website verwendet ausschließlich technisch notwendige Cookies. Es werden keine Tracking- oder Marketing-Cookies eingesetzt.
+        <a href="#" onclick="document.getElementById('impressum-modal').classList.add('active'); document.getElementById('cookie-banner').style.display='none'; localStorage.setItem('routaris-cookies-ok','1'); return false;" style="color: var(--teal); text-decoration: underline;">Mehr erfahren</a>
+      </p>
+      <button onclick="document.getElementById('cookie-banner').style.display='none'; localStorage.setItem('routaris-cookies-ok','1');">Verstanden</button>
+    </div>
+  </div>
+  <script>
+    if (!localStorage.getItem('routaris-cookies-ok')) {
+      document.getElementById('cookie-banner').style.display = '';
+    }
+  </script>
 
   <!-- ======= ERROR TOAST ======= -->
   <div id="error-message" class="error-toast" role="alert" aria-live="assertive"></div>
