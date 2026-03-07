@@ -153,9 +153,9 @@
 }
 
 .hero-logo img {
-  height: 140px;
+  height: 160px;
   width: auto;
-  filter: brightness(0) invert(1);
+  content: url('../CI/routaris-wordmark-light.svg');
 }
 
 .hero-badge {
