@@ -41,16 +41,8 @@ const App = {
   _isSharedView: false,
 
   init() {
-    // Migrate old localStorage key (NomadRoute → Routaris)
-    const oldFavs = localStorage.getItem('nomadroute-favorites');
-    if (oldFavs) {
-      localStorage.setItem('routaris-favorites', oldFavs);
-      localStorage.removeItem('nomadroute-favorites');
-    }
-
     this.bindNavigation();
     this.bindBasicsForm();
-    this.initFavorites();
 
     // Geteilte Route im URL-Hash erkennen
     if (this.loadSharedRoute()) return;
