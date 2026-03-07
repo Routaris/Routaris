@@ -1141,8 +1141,8 @@ const Results = {
     container.innerHTML = `
       <div class="suggestions-section">
         <div class="suggestions-header">
-          <h4><span class="suggestions-icon">&#x2728;</span> Deine Route könnte noch besser werden</h4>
-          <p>Basierend auf deiner Route und deinen Interessen</p>
+          <h4><span class="suggestions-icon">&#x2728;</span> Noch mehr entdecken?</h4>
+          <p>Diese Ziele passen zu deiner Route – füge sie hinzu, wenn du magst</p>
         </div>
         <div class="suggestions-list">
           ${suggestions.map((s, i) => `
