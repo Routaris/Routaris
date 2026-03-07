@@ -1296,24 +1296,26 @@
 }
 
 .map-export-format-preview {
-  background: var(--ink-muted);
   border-radius: 4px;
-  opacity: 0.2;
+  overflow: hidden;
+  border: 1px solid var(--ink-lightest);
+  display: flex;
+  flex-direction: column;
 }
 
 .map-export-preview-landscape {
-  width: 72px;
-  height: 38px;
+  width: 96px;
+  height: 50px;
 }
 
 .map-export-preview-square {
-  width: 54px;
-  height: 54px;
+  width: 68px;
+  height: 68px;
 }
 
 .map-export-preview-story {
-  width: 36px;
-  height: 64px;
+  width: 44px;
+  height: 78px;
 }
 
 .map-export-format-label {

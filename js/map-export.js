@@ -31,7 +31,9 @@ const MapExport = {
         <div class="map-export-formats">
           ${Object.entries(this.SIZES).map(([key, s]) => `
             <button class="map-export-format-btn" onclick="MapExport.exportMap('${key}')">
-              <div class="map-export-format-preview map-export-preview-${key}"></div>
+              <div class="map-export-format-preview map-export-preview-${key}">
+                ${this._buildMiniPreview(key, s)}
+              </div>
               <div class="map-export-format-label">${s.label}</div>
               <div class="map-export-format-desc">${s.desc}</div>
               <div class="map-export-format-size">${s.w} × ${s.h}px</div>
@@ -285,6 +287,38 @@ const MapExport = {
       const modal = document.getElementById('map-export-modal');
       if (modal) modal.remove();
     }
+  },
+
+  /**
+   * Erzeugt ein CSS-basiertes Mini-Preview für das Export-Modal
+   */
+  _buildMiniPreview(format, size) {
+    const mapPct = Math.round(size.mapRatio * 100);
+    const barPct = 100 - mapPct;
+    const result = App.state.result;
+    const stopCount = result ? Math.min(result.stops.length, 5) : 3;
+
+    // Mini route dots
+    const dots = Array.from({ length: stopCount }, (_, i) => {
+      const color = i === 0 ? '#2A7C76' : i === stopCount - 1 ? '#18170F' : '#C4654A';
+      return `<span style="width:4px;height:4px;border-radius:50%;background:${color};"></span>`;
+    }).join('<span style="width:6px;height:1px;background:#D4D0C8;border-radius:1px;"></span>');
+
+    return `
+      <div style="width:100%;height:${mapPct}%;background:linear-gradient(135deg,#e8e4dd 0%,#d5d0c8 40%,#c8d4d0 100%);border-radius:3px 3px 0 0;position:relative;overflow:hidden;">
+        <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:0.3;" viewBox="0 0 80 50" preserveAspectRatio="none">
+          <path d="M10,35 Q25,15 40,25 T70,20" fill="none" stroke="#C4654A" stroke-width="1.5" stroke-dasharray="2,2"/>
+          <circle cx="15" cy="33" r="2.5" fill="#2A7C76"/>
+          <circle cx="40" cy="24" r="2.5" fill="#C4654A"/>
+          <circle cx="65" cy="21" r="2.5" fill="#18170F"/>
+        </svg>
+      </div>
+      <div style="width:100%;height:${barPct}%;background:linear-gradient(180deg,#FAF9F7,#EFEDE9);border-radius:0 0 3px 3px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px;">
+        <span style="font-family:'DM Serif Display',serif;font-size:5px;color:#18170F;line-height:1;">Routenname</span>
+        <span style="display:flex;align-items:center;gap:1px;">${dots}</span>
+        <span style="font-size:3px;color:#B5B0A5;">routaris.com</span>
+      </div>
+    `;
   },
 
   /**
