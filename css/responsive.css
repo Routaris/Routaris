@@ -66,10 +66,6 @@
     font-size: 0.95rem;
   }
 
-  .hero-logo img {
-    height: 110px;
-  }
-
   .logo img {
     height: 80px;
   }
@@ -459,10 +455,6 @@
     font-size: 1.7rem;
   }
 
-  .hero-logo img {
-    height: 85px;
-  }
-
   .country-selector {
     max-width: 100%;
     grid-template-columns: repeat(2, 1fr);
@@ -485,8 +477,16 @@
     font-size: 0.75rem;
   }
 
+  .logo img {
+    height: 60px;
+  }
+
   .logo-subtitle {
     display: none !important;
+  }
+
+  .site-header {
+    padding: 0 var(--space-sm);
   }
 
   .container {

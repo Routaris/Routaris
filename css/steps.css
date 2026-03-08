@@ -148,16 +148,6 @@
   max-width: 1120px;
 }
 
-.hero-logo {
-  margin-bottom: var(--space-xl);
-}
-
-.hero-logo img {
-  height: 120px;
-  width: auto;
-  content: url('../CI/routaris-wordmark-light.svg');
-}
-
 .hero-badge {
   display: inline-flex;
   align-items: center;
