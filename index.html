@@ -219,12 +219,16 @@
             mit interaktiver Karte, Tagesplänen und praktischen Tipps.
           </p>
 
-          <!-- Hero Preview: Beispielroute -->
+          <!-- Hero Preview: Beispielroute (statischer Kartenexport) -->
           <div class="hero-preview" id="hero-preview">
             <div class="hero-preview-frame">
-              <div class="hero-preview-label">Beispielroute: 21 Tage China mit Familie</div>
-              <div class="hero-preview-map" id="hero-preview-map"></div>
-              <div class="hero-preview-timeline" id="hero-preview-timeline"></div>
+              <picture>
+                <source data-srcset="images/hero/hero-preview-route.webp" type="image/webp">
+                <img id="hero-preview-img"
+                     data-src="images/hero/hero-preview-route.png"
+                     alt="Beispielroute: Indonesiens Insel-Odyssee – 7 Stopps, 15 Nächte"
+                     class="hero-preview-img">
+              </picture>
             </div>
           </div>
 

@@ -207,7 +207,7 @@ const Results = {
 
   /**
    * Erstellt einen Premium SVG-Tropfen-Marker
-   * SYNC: Bei Änderungen auch HeroPreview._drawRoute() in hero-preview.js anpassen!
+   * Erstellt einen Premium SVG-Tropfen-Marker
    */
   createPremiumMarker(number, color, isCombi, combiLabel) {
     if (isCombi) {
@@ -505,7 +505,6 @@ const Results = {
       }).addTo(this.map);
     };
 
-    // SYNC: Polyline-Farben/Dashes auch in HeroPreview._drawRoute() (hero-preview.js) anpassen!
     if (result.legs) {
       result.legs.forEach(leg => {
         const fromStop = result.stops.find(s => this.matchCity(s.city, leg.from));
