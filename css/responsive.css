@@ -17,6 +17,10 @@
     max-width: 580px;
   }
 
+  .hero-preview-map-wrap {
+    max-height: 220px;
+  }
+
   .country-card {
     height: 180px;
   }
@@ -72,6 +76,27 @@
 
   .hero-preview {
     max-width: 100%;
+  }
+
+  .hero-preview-map-wrap {
+    max-height: 180px;
+  }
+
+  .hero-preview-title {
+    font-size: 1rem;
+  }
+
+  .hp-pill {
+    font-size: 0.65rem;
+  }
+
+  .hp-pill small {
+    font-size: 0.58rem;
+  }
+
+  .hero-preview-stats {
+    font-size: 0.72rem;
+    gap: var(--space-md);
   }
 
   .logo img {

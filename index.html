@@ -219,16 +219,47 @@
             mit interaktiver Karte, Tagesplänen und praktischen Tipps.
           </p>
 
-          <!-- Hero Preview: Beispielroute (statischer Kartenexport) -->
+          <!-- Hero Preview: Beispielroute (Karte + Zusammenfassung) -->
           <div class="hero-preview" id="hero-preview">
             <div class="hero-preview-frame">
-              <picture>
-                <source data-srcset="images/hero/hero-preview-route.webp" type="image/webp">
-                <img id="hero-preview-img"
-                     data-src="images/hero/hero-preview-route.png"
-                     alt="Beispielroute: Indonesiens Insel-Odyssee – 7 Stopps, 15 Nächte"
-                     class="hero-preview-img">
-              </picture>
+              <!-- Karte oben -->
+              <div class="hero-preview-map-wrap">
+                <picture>
+                  <img id="hero-preview-img"
+                       data-src="images/hero/hero-preview-route.png"
+                       alt="Beispielroute: Indonesiens Insel-Odyssee – 7 Stopps, 15 Nächte"
+                       class="hero-preview-img">
+                </picture>
+              </div>
+              <!-- Reisedaten-Zusammenfassung unten -->
+              <div class="hero-preview-summary">
+                <div class="hero-preview-brand">
+                  <span class="hero-preview-brand-emoji">🏝️</span>
+                  <span class="hero-preview-brand-name">Inselroute</span>
+                </div>
+                <div class="hero-preview-title">Indonesiens Insel-Odyssee für Entdeckerfamilien</div>
+                <div class="hero-preview-route-pills">
+                  <span class="hp-pill"><i class="hp-dot hp-dot-teal"></i>Jakarta <small>2N</small></span>
+                  <span class="hp-pill-connector">—</span>
+                  <span class="hp-pill"><i class="hp-dot"></i>Yogyakarta <small>2N</small></span>
+                  <span class="hp-pill-connector">—</span>
+                  <span class="hp-pill"><i class="hp-dot"></i>Mt. Bromo <small>2N</small></span>
+                  <span class="hp-pill-connector">—</span>
+                  <span class="hp-pill"><i class="hp-dot"></i>Lombok <small>2N</small></span>
+                  <span class="hp-pill-connector">—</span>
+                  <span class="hp-pill"><i class="hp-dot"></i>Labuan Bajo <small>2N</small></span>
+                  <span class="hp-pill-connector">—</span>
+                  <span class="hp-pill"><i class="hp-dot"></i>Flores <small>2N</small></span>
+                  <span class="hp-pill-connector">—</span>
+                  <span class="hp-pill"><i class="hp-dot hp-dot-ink"></i>Denpasar <small>2N</small></span>
+                </div>
+                <div class="hero-preview-stats">
+                  <span>🌙 15 Nächte</span>
+                  <span>📍 7 Stopps</span>
+                  <span>📅 Frühling</span>
+                </div>
+                <div class="hero-preview-footer">geplant mit routaris.com</div>
+              </div>
             </div>
           </div>
 
