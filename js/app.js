@@ -49,6 +49,9 @@ const App = {
 
     this.showStep(0);
     this.updateProgressDots();
+
+    // Hero Preview initialisieren
+    HeroPreview.init();
   },
 
   /**
@@ -306,6 +309,13 @@ const App = {
     const header = document.querySelector('.site-header');
     if (header) {
       header.classList.toggle('hero-mode', step === 0);
+    }
+
+    // Hero Preview: Cleanup bei Verlassen, Re-Init bei Rückkehr
+    if (step === 0) {
+      HeroPreview.init();
+    } else {
+      HeroPreview.destroy();
     }
 
     // Step-spezifische Initialisierung

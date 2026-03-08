@@ -13,6 +13,14 @@
     grid-template-columns: repeat(4, 1fr);
   }
 
+  .hero-preview {
+    max-width: 580px;
+  }
+
+  .hero-preview-map {
+    height: 240px;
+  }
+
   .country-card {
     height: 180px;
   }
@@ -64,6 +72,18 @@
 
   .hero-subtitle {
     font-size: 0.95rem;
+  }
+
+  .hero-preview {
+    max-width: 100%;
+  }
+
+  .hero-preview-map {
+    height: 200px;
+  }
+
+  .hero-preview-label {
+    font-size: 0.8rem;
   }
 
   .logo img {
@@ -457,6 +477,26 @@
 
   .hero h1 {
     font-size: 1.7rem;
+  }
+
+  .hero-preview-map {
+    height: 180px;
+  }
+
+  .hero-preview-label {
+    font-size: 0.75rem;
+  }
+
+  .hero-tl-city {
+    font-size: 0.6rem;
+  }
+
+  .hero-tl-emoji {
+    font-size: 0.85rem;
+  }
+
+  .hero-tl-connector {
+    padding: 0 4px;
   }
 
   .country-selector {

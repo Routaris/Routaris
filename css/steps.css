@@ -188,6 +188,133 @@
   text-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* --- Hero Preview: Vintage-Kartenrahmen --- */
+.hero-preview {
+  width: 100%;
+  max-width: 620px;
+  margin-bottom: var(--space-2xl);
+}
+
+.hero-preview-frame {
+  background: #f5f0e6;
+  border: 3px double #c4a96a;
+  border-radius: var(--radius-lg);
+  padding: var(--space-md);
+  box-shadow:
+    inset 0 2px 8px rgba(0, 0, 0, 0.08),
+    0 4px 20px rgba(0, 0, 0, 0.25);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Subtle grain texture */
+.hero-preview-frame::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
+}
+
+.hero-preview-label {
+  font-family: 'DM Serif Display', serif;
+  font-style: italic;
+  font-size: 0.9rem;
+  color: #5a4e3a;
+  text-align: center;
+  margin-bottom: var(--space-sm);
+  letter-spacing: 0.02em;
+}
+
+.hero-preview-map {
+  height: 280px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+/* Sepia-Filter auf Karten-Tiles */
+.hero-preview-map .leaflet-tile-pane {
+  filter: sepia(0.3) saturate(0.85);
+}
+
+.hero-preview-map .leaflet-container {
+  background: #f5f0e6;
+}
+
+/* Nummerierte Marker */
+.hero-preview-marker {
+  background: none !important;
+  border: none !important;
+}
+
+/* Timeline */
+.hero-preview-timeline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  margin-top: var(--space-sm);
+  padding: var(--space-xs) 0;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.hero-tl-stop {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.hero-tl-emoji {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.hero-tl-city {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #3a3528;
+  white-space: nowrap;
+}
+
+.hero-tl-nights {
+  font-size: 0.6rem;
+  color: #8a7e6a;
+  font-weight: 500;
+}
+
+.hero-tl-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.hero-tl-connector::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: #c4a96a;
+  z-index: 0;
+}
+
+.hero-tl-transport {
+  font-size: 0.75rem;
+  position: relative;
+  z-index: 1;
+  background: #f5f0e6;
+  padding: 0 3px;
+}
+
 /* Continent Filter */
 .continent-filter {
   display: flex;

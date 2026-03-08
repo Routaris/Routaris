@@ -207,6 +207,7 @@ const Results = {
 
   /**
    * Erstellt einen Premium SVG-Tropfen-Marker
+   * SYNC: Bei Änderungen auch HeroPreview._drawRoute() in hero-preview.js anpassen!
    */
   createPremiumMarker(number, color, isCombi, combiLabel) {
     if (isCombi) {
@@ -504,6 +505,7 @@ const Results = {
       }).addTo(this.map);
     };
 
+    // SYNC: Polyline-Farben/Dashes auch in HeroPreview._drawRoute() (hero-preview.js) anpassen!
     if (result.legs) {
       result.legs.forEach(leg => {
         const fromStop = result.stops.find(s => this.matchCity(s.city, leg.from));
@@ -554,9 +556,12 @@ const Results = {
       }
     }
 
-    // Karte auf Route fitten
+    // Karte auf Route fitten – "Zoom to Layer" (maximal nah ran)
     if (latlngs.length > 1) {
-      this.map.fitBounds(L.latLngBounds(latlngs).pad(0.06));
+      this.map.fitBounds(L.latLngBounds(latlngs), {
+        padding: [30, 30],
+        maxZoom: 14
+      });
     } else if (latlngs.length === 1) {
       this.map.setView(latlngs[0], 10);
     }
@@ -786,7 +791,10 @@ const Results = {
     const result = App.state.result;
     if (this.map && result && result.stops.length > 1) {
       const latlngs = result.stops.map(s => [s.lat, s.lng]);
-      this.map.fitBounds(L.latLngBounds(latlngs).pad(0.06));
+      this.map.fitBounds(L.latLngBounds(latlngs), {
+        padding: [30, 30],
+        maxZoom: 14
+      });
     }
 
     // Zur Übersicht scrollen
