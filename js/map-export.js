@@ -459,7 +459,7 @@ const MapExport = {
 
         <!-- Logo + Brand -->
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: ${f.gap}px;">
-          <img src="CI/logo-icon.png" style="height: ${f.logoPx}px; width: auto;" crossorigin="anonymous" onerror="this.style.display='none'">
+          <img src="CI/routaris-icon-3d.png" style="height: ${f.logoPx}px; width: auto;" crossorigin="anonymous" onerror="this.style.display='none'">
           <span style="font-family: 'DM Serif Display', serif; font-size: ${f.brandFz}; color: #18170F; letter-spacing: 0.02em;">${brandName}</span>
         </div>
 
