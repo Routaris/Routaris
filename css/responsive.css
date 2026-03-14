@@ -522,6 +522,10 @@
     padding: 0 var(--space-md);
   }
 
+  .date-picker-row {
+    grid-template-columns: 1fr;
+  }
+
   .radio-cards {
     grid-template-columns: 1fr 1fr;
     gap: var(--space-sm);

@@ -53,26 +53,26 @@ const PDFExport = {
       const imgs = await this.prefetchAllImages(result);
 
       this.showProgress('Cover...', 20);
-      this.pageCover(doc, result, imgs);
+      await this.pageCover(doc, result, imgs);
 
       this.showProgress('Routen\u00FCbersicht...', 30);
       doc.addPage();
-      this.pageOverview(doc, result, imgs);
+      await this.pageOverview(doc, result, imgs);
 
       const n = result.stops.length;
       for (let i = 0; i < n; i++) {
         this.showProgress(this._clean(result.stops[i].city) + '...', 35 + Math.round(i / n * 45));
         doc.addPage();
-        this.pageStop(doc, result.stops[i], i, result, imgs);
+        await this.pageStop(doc, result.stops[i], i, result, imgs);
       }
 
       this.showProgress('Budget & Tipps...', 85);
       doc.addPage();
-      this.pageBudget(doc, result);
+      await this.pageBudget(doc, result, imgs);
 
       this.showProgress('Finalisiere...', 92);
       doc.addPage();
-      this.pageCredits(doc, result, imgs);
+      await this.pageCredits(doc, result, imgs);
 
       const total = doc.internal.getNumberOfPages();
       for (let p = 2; p <= total; p++) {
@@ -147,7 +147,7 @@ const PDFExport = {
     const tasks = [];
     const heroPath = cc ? `images/hero/${cc.id}.jpg` : 'images/hero/hero-bg.jpg';
     tasks.push(this._imgData(heroPath).then(d => { imgs.hero = d; }));
-    tasks.push(this._imgData('CI/logo-header.png').then(d => { imgs.logo = d; }));
+    tasks.push(this._loadSvg('CI/routaris-wordmark-notag.svg').then(d => { imgs.logo = d; }));
     tasks.push(this._captureMap().then(d => { imgs.map = d; }));
     for (let i = 0; i < result.stops.length; i++) {
       const stop = result.stops[i];
@@ -210,18 +210,38 @@ const PDFExport = {
     } catch { return null; }
   },
 
+  async _loadSvg(path) {
+    try {
+      const res = await fetch(path);
+      if (!res.ok) return null;
+      const svgText = await res.text();
+      const dataUrl = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svgText);
+      const img = new Image();
+      img.src = dataUrl;
+      await img.decode();
+      const w = img.naturalWidth || 400;
+      const h = img.naturalHeight || 170;
+      const c = document.createElement('canvas');
+      const scale = 3;
+      c.width = w * scale; c.height = h * scale;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0, c.width, c.height);
+      return { data: c.toDataURL('image/png'), w: c.width, h: c.height };
+    } catch { return null; }
+  },
+
   // ═══════════════════════════════════════
   //  PAGE: COVER
   // ═══════════════════════════════════════
 
-  pageCover(doc, result, imgs) {
+  async pageCover(doc, result, imgs) {
     const C = this.C;
     doc.setFillColor(...C.cream);
     doc.rect(0, 0, this.PW, this.PH, 'F');
 
     const heroH = 180;
     if (imgs.hero) {
-      this._img(doc, imgs.hero, 0, 0, this.PW, heroH);
+      await this._img(doc, imgs.hero, 0, 0, this.PW, heroH);
     } else {
       doc.setFillColor(...C.teal);
       doc.rect(0, 0, this.PW, heroH, 'F');
@@ -279,10 +299,13 @@ const PDFExport = {
 
     const seasons = { spring: 'Fr\u00FChling', summer: 'Sommer', autumn: 'Herbst', winter: 'Winter' };
     const groups = { solo: 'Solo', couple: 'Paar', family: 'Familie', friends: 'Freunde' };
+    const reisezeitTop = App.state.arrivalDate && App.state.departureDate
+      ? `${new Date(App.state.arrivalDate + 'T12:00:00').toLocaleDateString('de-DE', {day:'numeric',month:'short'})} – ${new Date(App.state.departureDate + 'T12:00:00').toLocaleDateString('de-DE', {day:'numeric',month:'short'})}`
+      : (seasons[App.state.season] || '');
     const stats = [
       { top: String(result.totalNights), bottom: 'N\u00E4chte' },
       { top: String(result.stops.length), bottom: 'Stopps' },
-      { top: seasons[App.state.season] || '', bottom: 'Reisezeit' },
+      { top: reisezeitTop, bottom: 'Reisezeit' },
       { top: groups[App.state.group] || '', bottom: 'Reisegruppe' }
     ].filter(s => s.top);
 
@@ -307,7 +330,7 @@ const PDFExport = {
     // Logo + brand
     y = this.PH - 38;
     if (imgs.logo) {
-      this._img(doc, imgs.logo, this.PW / 2 - 28, y, 56, 24);
+      await this._img(doc, imgs.logo, this.PW / 2 - 28, y, 56, 24);
       y += 28;
     }
     const cc = CountryConfig.current;
@@ -321,10 +344,10 @@ const PDFExport = {
   //  PAGE: OVERVIEW
   // ═══════════════════════════════════════
 
-  pageOverview(doc, result, imgs) {
+  async pageOverview(doc, result, imgs) {
     const C = this.C;
     this._bg(doc);
-    this._header(doc);
+    await this._header(doc, imgs);
     let y = 24;
 
     this._sec(doc, 'Routen\u00FCbersicht', y);
@@ -337,7 +360,7 @@ const PDFExport = {
       const mapH = Math.min(Math.round(mapW / mapRatio), 110);
       doc.setFillColor(...C.white);
       doc.roundedRect(this.M - 1, y - 1, mapW + 2, mapH + 2, 3, 3, 'F');
-      this._img(doc, imgs.map, this.M, y, mapW, mapH);
+      await this._img(doc, imgs.map, this.M, y, mapW, mapH);
       doc.setDrawColor(...C.border);
       doc.setLineWidth(0.4);
       doc.roundedRect(this.M - 1, y - 1, mapW + 2, mapH + 2, 3, 3, 'S');
@@ -350,9 +373,10 @@ const PDFExport = {
     const stops = result.stops;
     const cx = this.M + 6;
 
-    stops.forEach((stop, i) => {
+    for (let i = 0; i < stops.length; i++) {
+      const stop = stops[i];
       const neededH = i < stops.length - 1 ? 18 : 10;
-      if (y + neededH > 270) { doc.addPage(); this._bg(doc); this._header(doc); y = 24; }
+      if (y + neededH > 270) { doc.addPage(); this._bg(doc); await this._header(doc, imgs); y = 24; }
 
       // Circle
       doc.setFillColor(...C.terra);
@@ -393,14 +417,14 @@ const PDFExport = {
         }
         y += 8;
       }
-    });
+    }
   },
 
   // ═══════════════════════════════════════
   //  PAGE: STOP (one page per stop)
   // ═══════════════════════════════════════
 
-  pageStop(doc, stop, idx, result, imgs) {
+  async pageStop(doc, stop, idx, result, imgs) {
     const C = this.C;
     this._bg(doc);
     const cityImg = imgs.stops[stop.city];
@@ -444,7 +468,7 @@ const PDFExport = {
     //  HERO IMAGE
     // ══════════════════════════════════
     if (cityImg) {
-      this._img(doc, cityImg, 0, 0, this.PW, 68);
+      await this._img(doc, cityImg, 0, 0, this.PW, 68);
       doc.setFillColor(...C.overlay);
       doc.rect(0, 42, this.PW, 26, 'F');
 
@@ -462,11 +486,11 @@ const PDFExport = {
       doc.setFont(this.FB, 'normal');
       doc.setFontSize(9);
       doc.setTextColor(...C.terraPale);
-      doc.text(`${stop.nights} N\u00E4chte  |  Tag ${sd} bis ${sd + stop.nights - 1}`, this.M + 14, 66);
+      doc.text(`${stop.nights} N\u00E4chte  |  ${this._dateRange(stop, sd)}`, this.M + 14, 66);
 
       y = 74;
     } else {
-      this._header(doc);
+      await this._header(doc, imgs);
       doc.setFillColor(...C.terra);
       doc.roundedRect(this.M, 18, this.CW, 22, 4, 4, 'F');
       doc.setFont(this.FD, 'normal');
@@ -475,7 +499,7 @@ const PDFExport = {
       doc.text(`${idx + 1}.  ${this._clean(stop.city)}`, this.M + 8, 32);
       doc.setFont(this.FB, 'normal');
       doc.setFontSize(8);
-      doc.text(`${stop.nights} N\u00E4chte  |  Tag ${sd} bis ${sd + stop.nights - 1}`, this.M + this.CW - 5, 32, { align: 'right' });
+      doc.text(`${stop.nights} N\u00E4chte  |  ${this._dateRange(stop, sd)}`, this.M + this.CW - 5, 32, { align: 'right' });
       y = 46;
     }
 
@@ -507,7 +531,7 @@ const PDFExport = {
         const img1 = imgs.hl[`${idx}-1`];
 
         if (img0) {
-          this._img(doc, img0, this.M, y, colW, imgH);
+          await this._img(doc, img0, this.M, y, colW, imgH);
           doc.setFillColor(...C.overlay);
           doc.rect(this.M, y + imgH - 10, colW, 10, 'F');
           doc.setFont(this.FB, 'normal');
@@ -520,7 +544,7 @@ const PDFExport = {
         }
         const rx = this.M + colW + gap;
         if (img1) {
-          this._img(doc, img1, rx, y, colW, imgH);
+          await this._img(doc, img1, rx, y, colW, imgH);
           doc.setFillColor(...C.overlay);
           doc.rect(rx, y + imgH - 10, colW, 10, 'F');
           doc.setFont(this.FB, 'normal');
@@ -575,7 +599,7 @@ const PDFExport = {
         doc.setFont(this.FB, 'normal');
         doc.setFontSize(8.5);
         doc.setTextColor(...C.terra);
-        doc.text(`Tag ${dayNum}`, this.M, y + 2);
+        doc.text(this._dayLabel(stop, day.day, dayNum), this.M, y + 2);
 
         doc.setFont(this.FD, 'normal');
         doc.setFontSize(10);
@@ -675,10 +699,10 @@ const PDFExport = {
   //  PAGE: BUDGET
   // ═══════════════════════════════════════
 
-  pageBudget(doc, result) {
+  async pageBudget(doc, result, imgs) {
     const C = this.C;
     this._bg(doc);
-    this._header(doc);
+    await this._header(doc, imgs);
     let y = 24;
 
     this._sec(doc, 'Budget & Reisetipps', y);
@@ -743,8 +767,8 @@ const PDFExport = {
       this._sec(doc, 'Gut zu wissen', y);
       y += 12;
 
-      result.travelInfo.forEach(info => {
-        y = this._checkPage(doc, y, 20);
+      for (const info of result.travelInfo) {
+        y = await this._checkPage(doc, y, 20, imgs);
         const title = this._clean(info.title || '');
         const text = this._clean(info.text || '');
         const lines = doc.splitTextToSize(text, this.CW - 20);
@@ -766,7 +790,7 @@ const PDFExport = {
         lines.forEach((line, li) => { doc.text(line, this.M + 10, y + 15 + li * 4.3); });
 
         y += cardH + 5;
-      });
+      }
     }
   },
 
@@ -774,7 +798,7 @@ const PDFExport = {
   //  PAGE: CREDITS
   // ═══════════════════════════════════════
 
-  pageCredits(doc, result, imgs) {
+  async pageCredits(doc, result, imgs) {
     const C = this.C;
     this._bg(doc);
     const cc = CountryConfig.current;
@@ -788,7 +812,7 @@ const PDFExport = {
     y += 12;
 
     if (imgs.logo) {
-      this._img(doc, imgs.logo, this.PW / 2 - 35, y, 70, 30);
+      await this._img(doc, imgs.logo, this.PW / 2 - 35, y, 70, 30);
       y += 38;
     }
 
@@ -834,13 +858,22 @@ const PDFExport = {
     doc.rect(0, 0, this.PW, this.PH, 'F');
   },
 
-  _header(doc) {
+  async _header(doc, imgs) {
     const cc = CountryConfig.current;
     const brand = cc ? cc.brandName : 'Routaris';
+    let textX = this.M;
+
+    if (imgs && imgs.logo) {
+      const logoH = 6;
+      const logoW = (imgs.logo.w / imgs.logo.h) * logoH;
+      await this._img(doc, imgs.logo, this.M, 5, logoW, logoH);
+      textX = this.M + logoW + 3;
+    }
+
     doc.setFont(this.FB, 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...this.C.inkMuted);
-    doc.text('Routaris  |  ' + brand, this.M, 10);
+    doc.text(brand, textX, 10);
     doc.setDrawColor(...this.C.border);
     doc.setLineWidth(0.3);
     doc.line(this.M, 12, this.PW - this.M, 12);
@@ -873,11 +906,11 @@ const PDFExport = {
     doc.line(this.M + 9 + tw, y + 4, this.PW - this.M, y + 4);
   },
 
-  _checkPage(doc, y, needed) {
+  async _checkPage(doc, y, needed, imgs) {
     if (y + needed > this.PH - 18) {
       doc.addPage();
       this._bg(doc);
-      this._header(doc);
+      await this._header(doc, imgs);
       return 24;
     }
     return y;
@@ -887,7 +920,7 @@ const PDFExport = {
    * Platziert ein Bild mit "cover"-Modus: füllt den Zielbereich ohne Verzerrung.
    * Akzeptiert { data, w, h } (mit Originaldimensionen) oder plain dataURL (Fallback).
    */
-  _img(doc, imgObj, x, y, w, h) {
+  async _img(doc, imgObj, x, y, w, h) {
     if (!imgObj) return;
     try {
       let data, iw, ih;
@@ -910,6 +943,7 @@ const PDFExport = {
 
         const img = new Image();
         img.src = data;
+        await img.decode();
 
         let sx, sy, sw, sh;
         if (imgR > targetR) {
@@ -928,6 +962,45 @@ const PDFExport = {
       const fmt = data.includes('image/png') ? 'PNG' : 'JPEG';
       doc.addImage(data, fmt, x, y, w, h, undefined, 'FAST');
     } catch (e) { console.warn('[PDF] Bild-Fehler:', e.message); }
+  },
+
+  /**
+   * Formatiert Datumsbereich für einen Stopp im PDF.
+   * Nutzt kurzes Monatsformat um Platz zu sparen.
+   */
+  _dateRange(stop, startDay) {
+    const opts = { day: 'numeric', month: 'short' };
+    if (stop.arrivalDate && stop.departureDate) {
+      const arr = new Date(stop.arrivalDate + 'T12:00:00');
+      const dep = new Date(stop.departureDate + 'T12:00:00');
+      return `${arr.toLocaleDateString('de-DE', opts)} – ${dep.toLocaleDateString('de-DE', opts)}`;
+    }
+    if (App.state && App.state.arrivalDate) {
+      const base = new Date(App.state.arrivalDate + 'T12:00:00');
+      const arr = new Date(base);
+      arr.setDate(arr.getDate() + startDay - 1);
+      const dep = new Date(base);
+      dep.setDate(dep.getDate() + startDay - 1 + stop.nights - 1);
+      return `${arr.toLocaleDateString('de-DE', opts)} – ${dep.toLocaleDateString('de-DE', opts)}`;
+    }
+    return `Tag ${startDay} bis ${startDay + stop.nights - 1}`;
+  },
+
+  /**
+   * Formatiert ein einzelnes Tages-Label im PDF.
+   */
+  _dayLabel(stop, dayInStop, globalDay) {
+    if (stop.arrivalDate) {
+      const d = new Date(stop.arrivalDate + 'T12:00:00');
+      d.setDate(d.getDate() + dayInStop - 1);
+      return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+    }
+    if (App.state && App.state.arrivalDate) {
+      const base = new Date(App.state.arrivalDate + 'T12:00:00');
+      base.setDate(base.getDate() + globalDay - 1);
+      return base.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+    }
+    return `Tag ${globalDay}`;
   },
 
   _clean(text) {

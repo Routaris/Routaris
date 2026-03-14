@@ -470,8 +470,27 @@
             </div>
           </div>
 
+          <!-- Reisedaten (optional) -->
+          <div class="form-group full-width date-picker-group">
+            <label class="form-label">Reisedaten <span class="form-hint">(optional)</span></label>
+            <div class="date-picker-row">
+              <div class="date-field">
+                <label for="arrival-date">Ankunft am Zielort</label>
+                <input type="date" id="arrival-date" class="form-input date-input">
+              </div>
+              <div class="date-field">
+                <label for="departure-date">Abreise vom Zielort</label>
+                <input type="date" id="departure-date" class="form-input date-input">
+              </div>
+            </div>
+            <div class="date-hint">
+              &#x2708;&#xFE0F; Beachte: Bei Fernreisen liegt der Abflug von Zuhause häufig am Vortag.
+              Gib hier das Datum ein, an dem du am Zielort ankommst.
+            </div>
+          </div>
+
           <!-- Reisedauer -->
-          <div class="form-group full-width">
+          <div class="form-group full-width" id="days-group">
             <div class="range-header">
               <span class="range-label">Reisedauer</span>
               <div class="days-input-wrap">

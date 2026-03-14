@@ -9,6 +9,33 @@ const Results = {
   stopThumbnails: {},
 
   /**
+   * Formatiert einen Datumsbereich für einen Stopp.
+   * Nutzt stop.arrivalDate/departureDate, fällt auf Berechnung aus App.state zurück,
+   * und zeigt "Tag X–Y" wenn keine Daten vorhanden.
+   */
+  _formatDateRange(stop, startDay) {
+    const opts = { day: 'numeric', month: 'long' };
+    // Option 1: Gemini hat Daten pro Stopp geliefert
+    if (stop.arrivalDate && stop.departureDate) {
+      const arr = new Date(stop.arrivalDate + 'T12:00:00');
+      const dep = new Date(stop.departureDate + 'T12:00:00');
+      return `${arr.toLocaleDateString('de-DE', opts)} – ${dep.toLocaleDateString('de-DE', opts)}`;
+    }
+    // Option 2: Berechne aus App.state.arrivalDate
+    const state = App.state;
+    if (state && state.arrivalDate) {
+      const base = new Date(state.arrivalDate + 'T12:00:00');
+      const arr = new Date(base);
+      arr.setDate(arr.getDate() + startDay - 1);
+      const dep = new Date(base);
+      dep.setDate(dep.getDate() + startDay - 1 + stop.nights - 1);
+      return `${arr.toLocaleDateString('de-DE', opts)} – ${dep.toLocaleDateString('de-DE', opts)}`;
+    }
+    // Fallback: Tag-Nummern
+    return `Tag ${startDay}–${startDay + stop.nights - 1}`;
+  },
+
+  /**
    * Normalisiert einen Leg-Mode-String auf die bekannten Werte: train|flight|bus|sleeper_bus|boat|motorbike
    * Behandelt Varianten die Gemini zurückgeben kann (ferry, fast_boat, shuttle, car, combined modes etc.)
    */
@@ -726,7 +753,7 @@ const Results = {
           </div>
           <div class="overview-stop-body">
             <div class="overview-stop-city">${stop.city}</div>
-            <div class="overview-stop-meta">🌙 ${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'} · Tag ${startDay}–${startDay + stop.nights - 1}</div>
+            <div class="overview-stop-meta">🌙 ${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'} · ${this._formatDateRange(stop, startDay)}</div>
             ${stop.tagline ? `<p class="overview-stop-tagline">${stop.tagline}</p>` : ''}
             ${topHighlights.length ? `
               <div class="overview-stop-highlights">
@@ -833,7 +860,7 @@ const Results = {
           <div class="stop-detail-info">
             <h3>${stop.city}</h3>
             <div class="stop-detail-tagline">${stop.tagline || ''}</div>
-            <div class="stop-detail-nights">🌙 ${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'} (Tag ${startDay}–${startDay + stop.nights - 1})</div>
+            <div class="stop-detail-nights">🌙 ${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'} (${this._formatDateRange(stop, startDay)})</div>
           </div>
         </div>
 
@@ -855,7 +882,20 @@ const Results = {
           <h4>Tagesplan</h4>
           ${(stop.dailyPlan || []).map(day => `
             <div class="day-item">
-              <div class="day-num">Tag ${startDay + day.day - 1}</div>
+              <div class="day-num">${(() => {
+                const globalDay = startDay + day.day - 1;
+                if (stop.arrivalDate) {
+                  const d = new Date(stop.arrivalDate + 'T12:00:00');
+                  d.setDate(d.getDate() + day.day - 1);
+                  return d.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+                }
+                if (App.state && App.state.arrivalDate) {
+                  const base = new Date(App.state.arrivalDate + 'T12:00:00');
+                  base.setDate(base.getDate() + globalDay - 1);
+                  return base.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+                }
+                return 'Tag ' + globalDay;
+              })()}</div>
               <div class="day-content">
                 <h5>${day.title}</h5>
                 <p>${day.activities}</p>
@@ -1478,7 +1518,7 @@ const Results = {
           <div class="print-stop-header">
             <span class="print-stop-num">${i + 1}</span>
             <span class="print-stop-city">${stop.city}</span>
-            <span class="print-stop-nights">— ${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'} (Tag ${startDay}–${startDay + stop.nights - 1})</span>
+            <span class="print-stop-nights">— ${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'} (${this._formatDateRange(stop, startDay)})</span>
           </div>
           ${stop.tagline ? `<div class="print-stop-tagline">${stop.tagline}</div>` : ''}
 
@@ -1492,7 +1532,20 @@ const Results = {
           ${stop.dailyPlan && stop.dailyPlan.length ? `
             <div class="print-section-title">Tagesplan</div>
             ${stop.dailyPlan.map(d => `
-              <div class="print-day"><strong>Tag ${startDay + d.day - 1}: ${d.title}</strong> — ${d.activities}</div>
+              <div class="print-day"><strong>${(() => {
+                const globalDay = startDay + d.day - 1;
+                if (stop.arrivalDate) {
+                  const dt = new Date(stop.arrivalDate + 'T12:00:00');
+                  dt.setDate(dt.getDate() + d.day - 1);
+                  return dt.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+                }
+                if (App.state && App.state.arrivalDate) {
+                  const base = new Date(App.state.arrivalDate + 'T12:00:00');
+                  base.setDate(base.getDate() + globalDay - 1);
+                  return base.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+                }
+                return 'Tag ' + globalDay;
+              })()}: ${d.title}</strong> — ${d.activities}</div>
             `).join('')}
           ` : ''}
 

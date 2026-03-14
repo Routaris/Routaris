@@ -27,6 +27,8 @@ const App = {
       'Abenteuer': 3,
       'Kulinarik': 5
     },
+    arrivalDate: null,     // ISO-String 'YYYY-MM-DD' oder null
+    departureDate: null,   // ISO-String 'YYYY-MM-DD' oder null
     pinnedCities: [],
     additionalNotes: '',
     routeMode: 'custom',       // 'custom' | 'inspired'
@@ -853,10 +855,32 @@ const App = {
       }
     });
 
-    // Season Radio Cards
+    // Date Picker – min-Datum auf heute setzen
+    const today = new Date().toISOString().split('T')[0];
+    const arrDateInput = document.getElementById('arrival-date');
+    const depDateInput = document.getElementById('departure-date');
+    if (arrDateInput) arrDateInput.min = today;
+    if (depDateInput) depDateInput.min = today;
+
+    // Date Picker – Ankunft & Abreise
+    document.addEventListener('change', (e) => {
+      if (e.target.id === 'arrival-date' || e.target.id === 'departure-date') {
+        // Wenn Ankunft gesetzt: Abreise-min = Ankunft + 7 Tage
+        if (e.target.id === 'arrival-date' && arrDateInput && depDateInput && arrDateInput.value) {
+          const minDep = new Date(arrDateInput.value + 'T12:00:00');
+          minDep.setDate(minDep.getDate() + 6); // +6 da Abreisetag mitzählt → 7 Tage
+          depDateInput.min = minDep.toISOString().split('T')[0];
+        }
+        this._handleDateChange();
+      }
+    });
+
+    // Season Radio Cards (manuell nur wenn keine Daten gesetzt)
     document.addEventListener('click', (e) => {
       const seasonCard = e.target.closest('.radio-card[data-season]');
       if (seasonCard) {
+        // Wenn Daten auto-controllen, Season-Klick ignorieren
+        if (this.state.arrivalDate && this.state.departureDate) return;
         this.state.season = seasonCard.dataset.season;
         document.querySelectorAll('.radio-card[data-season]').forEach(c => c.classList.remove('active'));
         seasonCard.classList.add('active');
@@ -1031,6 +1055,104 @@ const App = {
   },
 
   /**
+   * Leitet Season aus Datum ab
+   */
+  _seasonFromDate(dateStr) {
+    const m = new Date(dateStr + 'T12:00:00').getMonth(); // 0-11
+    if (m >= 2 && m <= 4) return 'spring';
+    if (m >= 5 && m <= 7) return 'summer';
+    if (m >= 8 && m <= 10) return 'autumn';
+    return 'winter';
+  },
+
+  /**
+   * Synchronisiert Days-Slider und Number-Input auf einen neuen Wert
+   */
+  _syncDays(days) {
+    this.state.days = days;
+    const slider = document.getElementById('days-slider');
+    const numInput = document.getElementById('days-input');
+    if (slider) {
+      slider.value = Math.min(35, Math.max(7, days));
+      const pct = ((Math.min(35, Math.max(7, days)) - 7) / (35 - 7)) * 100;
+      slider.style.setProperty('--fill-pct', `${pct}%`);
+    }
+    if (numInput) numInput.value = days;
+  },
+
+  /**
+   * Verarbeitet Änderungen an den Date-Pickern
+   */
+  _handleDateChange() {
+    const arrInput = document.getElementById('arrival-date');
+    const depInput = document.getElementById('departure-date');
+    const arrVal = arrInput ? arrInput.value : '';
+    const depVal = depInput ? depInput.value : '';
+
+    const daysGroup = document.getElementById('days-group');
+    const seasonCards = document.querySelectorAll('.radio-card[data-season]');
+    const seasonParent = seasonCards[0] ? seasonCards[0].closest('.form-group') : null;
+
+    // Beide Daten leer → manuellen Modus wiederherstellen
+    if (!arrVal && !depVal) {
+      this.state.arrivalDate = null;
+      this.state.departureDate = null;
+      if (daysGroup) daysGroup.classList.remove('auto-controlled');
+      if (seasonParent) seasonParent.classList.remove('auto-controlled');
+      return;
+    }
+
+    // Nur ein Datum gesetzt → noch nichts tun, warten auf zweites
+    if (!arrVal || !depVal) {
+      this.state.arrivalDate = arrVal || null;
+      this.state.departureDate = depVal || null;
+      return;
+    }
+
+    // Beide gesetzt → validieren
+    const arrDate = new Date(arrVal + 'T12:00:00');
+    const depDate = new Date(depVal + 'T12:00:00');
+    const diffMs = depDate - arrDate;
+    const diffDays = Math.round(diffMs / 86400000) + 1; // Abreisetag zählt mit
+
+    if (diffDays <= 0) {
+      this.showError('Das Abreisedatum muss nach dem Ankunftsdatum liegen.');
+      depInput.value = '';
+      this.state.departureDate = null;
+      return;
+    }
+    if (diffDays < 7) {
+      this.showError('Die Reisedauer muss mindestens 7 Tage betragen.');
+      depInput.value = '';
+      this.state.departureDate = null;
+      return;
+    }
+    if (diffDays > 60) {
+      this.showError('Die maximale Reisedauer beträgt 60 Tage.');
+      depInput.value = '';
+      this.state.departureDate = null;
+      return;
+    }
+
+    this.state.arrivalDate = arrVal;
+    this.state.departureDate = depVal;
+
+    // Days aktualisieren
+    this._syncDays(diffDays);
+
+    // Season automatisch ableiten
+    const season = this._seasonFromDate(arrVal);
+    this.state.season = season;
+    seasonCards.forEach(c => {
+      c.classList.toggle('active', c.dataset.season === season);
+    });
+
+    // Slider/Season als auto-controlled markieren
+    if (daysGroup) daysGroup.classList.add('auto-controlled');
+    if (seasonParent) seasonParent.classList.add('auto-controlled');
+  },
+
+  /**
    * Regeneriert die Route (z.B. nach Vorschlag-Akzeptanz)
    * Zeigt Loading, generiert neu, bei Fehler alte Route beibehalten
    */
@@ -1137,6 +1259,19 @@ const App = {
     const depGroup = document.getElementById('return-airport-group');
     if (depGroup) depGroup.classList.remove('visible');
 
+    // Date Picker zurücksetzen + auto-controlled entfernen
+    const arrDate = document.getElementById('arrival-date');
+    const depDate = document.getElementById('departure-date');
+    if (arrDate) arrDate.value = '';
+    if (depDate) depDate.value = '';
+    const daysGroup = document.getElementById('days-group');
+    if (daysGroup) daysGroup.classList.remove('auto-controlled');
+    const seasonParent = document.querySelector('.radio-card[data-season]');
+    if (seasonParent) {
+      const fg = seasonParent.closest('.form-group');
+      if (fg) fg.classList.remove('auto-controlled');
+    }
+
     // Additional Notes Textarea
     const notesField = document.getElementById('additional-notes');
     if (notesField) notesField.value = '';
@@ -1220,6 +1355,8 @@ const App = {
     this.state.airport = null;
     this.state.sameReturn = true;
     this.state.departureAirport = null;
+    this.state.arrivalDate = null;
+    this.state.departureDate = null;
     this.state.transport = 'no-preference';
     this.state.trainMaxHours = 6;
     this.state.days = 14;

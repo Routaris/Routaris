@@ -98,8 +98,8 @@ const Gemini = {
 - Ankunftsort: ${s.airport}
 - Abreise ab: ${returnStr}
 - Transportpräferenz: ${transportStr}
-- Reisedauer: ${s.days} Tage (${s.days - 1} Nächte)
-- Reisezeitraum: ${seasonNames[s.season]}
+- Reisedauer: ${s.days} Tage (${s.days - 1} Nächte)${s.arrivalDate && s.departureDate ? `, vom ${new Date(s.arrivalDate + 'T12:00:00').toLocaleDateString('de-DE', {day:'numeric',month:'long',year:'numeric'})} bis ${new Date(s.departureDate + 'T12:00:00').toLocaleDateString('de-DE', {day:'numeric',month:'long',year:'numeric'})}` : ''}
+- Reisezeitraum: ${seasonNames[s.season]}${s.arrivalDate && s.departureDate ? ` (exakte Daten: ${new Date(s.arrivalDate + 'T12:00:00').toLocaleDateString('de-DE')} bis ${new Date(s.departureDate + 'T12:00:00').toLocaleDateString('de-DE')})` : ''}
 - Reisegruppe: ${groupNames[s.group]}${childStr}
 - Interessen-Gewichtung: ${prefStr}
 - Pflicht-Stopps: ${pinnedStr}
@@ -232,7 +232,9 @@ Antworte NUR mit validem JSON in exakt diesem Format (keine Erklärungen, kein M
       "wiki": "English_Wikipedia_article_title_for_city",
       "nights": 3,
       "lat": 31.23,
-      "lng": 121.47,
+      "lng": 121.47,${s.arrivalDate && s.departureDate ? `
+      "arrivalDate": "YYYY-MM-DD",
+      "departureDate": "YYYY-MM-DD",` : ''}
       "tagline": "Poetische Kurzbeschreibung auf Deutsch",
       "highlights": [
         { "icon": "emoji", "title": "Highlight-Name", "description": "Ausführliche Beschreibung auf Deutsch, 2-3 Sätze", "wiki": "English_Wikipedia_article_name" }
@@ -262,6 +264,7 @@ Antworte NUR mit validem JSON in exakt diesem Format (keine Erklärungen, kein M
 
 Wichtig:
 ${s.group === 'family' && s.childAge ? `- FAMILIEN-TIPPS: Da eine Familie mit Kind (${s.childAge} Jahre) reist, MUSS jeder Stopp mindestens einen familienspezifischen Tipp enthalten (z.B. Buggy-Tauglichkeit, Kindermenu, nächstes Krankenhaus, Spielplätze, kindgerechte Aktivitäten).` : ''}
+${s.arrivalDate && s.departureDate ? `- REISEDATEN: Der Nutzer hat exakte Reisedaten angegeben (${new Date(s.arrivalDate + 'T12:00:00').toLocaleDateString('de-DE')} bis ${new Date(s.departureDate + 'T12:00:00').toLocaleDateString('de-DE')}). Gib in JEDEM Stopp "arrivalDate" und "departureDate" als ISO-Strings (YYYY-MM-DD) an. Die Daten müssen lückenlos aufeinanderfolgen (departureDate eines Stopps = arrivalDate des nächsten Stopps).` : ''}
 - Pro Stopp genau 3 Highlights, einen dailyPlan pro Nacht, und 2-3 praktische Tipps
 - TAGESPLAN-STRUKTUR: Die Weiterreise zum nächsten Stopp gehört IMMER in den LETZTEN Tag des AKTUELLEN Stopps (z.B. "Vormittag: Letzte Erkundung der Altstadt. Nachmittag: Schnellzug nach Hangzhou (~1h)"). Der ERSTE Tag eines neuen Stopps beginnt mit der Ankunft dort (z.B. "Ankunft, Einchecken. Nachmittag: West Lake erkunden"). Ausnahme: Der allererste Stopp beginnt mit der Ankunft am Flughafen/Bahnhof und Transfer zum Hotel.
 
@@ -321,7 +324,8 @@ BILDER – EXTREM WICHTIG:
 ## Aktuelle Route
 
 Name: ${currentResult.routeName}
-Gesamtdauer: ${currentResult.totalNights} Nächte (${s.days} Tage)
+Gesamtdauer: ${currentResult.totalNights} Nächte (${s.days} Tage)${s.arrivalDate && s.departureDate ? `
+Reisedaten: ${new Date(s.arrivalDate + 'T12:00:00').toLocaleDateString('de-DE')} bis ${new Date(s.departureDate + 'T12:00:00').toLocaleDateString('de-DE')}` : ''}
 Ankunftsort: ${s.airport}
 Abreise ab: ${returnStr}
 
@@ -373,7 +377,9 @@ Antworte NUR mit validem JSON in exakt diesem Format (keine Erklärungen, kein M
       "wiki": "English_Wikipedia_article_title_for_city",
       "nights": 3,
       "lat": 31.23,
-      "lng": 121.47,
+      "lng": 121.47,${s.arrivalDate && s.departureDate ? `
+      "arrivalDate": "YYYY-MM-DD",
+      "departureDate": "YYYY-MM-DD",` : ''}
       "tagline": "Poetische Kurzbeschreibung auf Deutsch",
       "highlights": [
         { "icon": "emoji", "title": "Highlight-Name", "description": "Ausführliche Beschreibung auf Deutsch, 2-3 Sätze", "wiki": "English_Wikipedia_article_name" }

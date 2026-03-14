@@ -441,6 +441,52 @@ select.form-input {
   cursor: pointer;
 }
 
+/* --- Date Picker --- */
+.date-picker-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3, 12px);
+}
+.date-field label {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--ink-muted);
+  margin-bottom: var(--space-1, 4px);
+  display: block;
+}
+.date-input {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--ink);
+  cursor: pointer;
+}
+.date-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.6;
+}
+.date-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+.date-hint {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--ink-muted);
+  margin-top: var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
+  background: var(--cream-dark);
+  border-radius: var(--radius-sm);
+  line-height: 1.5;
+}
+.form-hint {
+  font-weight: 400;
+  color: var(--ink-muted);
+  font-size: 0.85em;
+}
+/* Slider/Season disabled-look when dates auto-control them */
+.auto-controlled {
+  opacity: 0.5;
+  pointer-events: none;
+  position: relative;
+}
+
 /* --- Custom Range Slider --- */
 .range-slider {
   position: relative;
