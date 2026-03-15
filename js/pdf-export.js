@@ -180,14 +180,14 @@ const PDFExport = {
       const img = new Image();
       img.crossOrigin = 'anonymous';
       await new Promise((ok, fail) => { img.onload = ok; img.onerror = fail; img.src = url; });
-      const max = 1200;
+      const max = 1800;
       let w = img.naturalWidth, h = img.naturalHeight;
       if (w === 0 || h === 0) return null;
       if (w > max) { h = Math.round(h * max / w); w = max; }
       const c = document.createElement('canvas');
       c.width = w; c.height = h;
       c.getContext('2d').drawImage(img, 0, 0, w, h);
-      return { data: c.toDataURL('image/jpeg', 0.75), w, h };
+      return { data: c.toDataURL('image/jpeg', 0.88), w, h };
     } catch { return null; }
   },
 
@@ -205,12 +205,17 @@ const PDFExport = {
         // Wait for map animation + tile loading
         await new Promise(r => {
           const done = () => { clearTimeout(fallback); r(); };
-          const fallback = setTimeout(done, 1200);
-          Results.map.once('moveend', () => setTimeout(done, 300));
+          const fallback = setTimeout(done, 2500);
+          Results.map.once('moveend', () => setTimeout(done, 800));
         });
       }
-      const c = await html2canvas(el, { useCORS: true, scale: 2, logging: false, backgroundColor: '#faf9f7' });
-      return { data: c.toDataURL('image/jpeg', 0.82), w: c.width, h: c.height };
+      // Hide Leaflet UI controls before capture
+      const controls = el.querySelectorAll('.leaflet-control-container');
+      controls.forEach(c => { c._prevDisplay = c.style.display; c.style.display = 'none'; });
+      const c = await html2canvas(el, { useCORS: true, scale: 3, logging: false, backgroundColor: '#faf9f7' });
+      // Restore UI controls
+      controls.forEach(c => { c.style.display = c._prevDisplay || ''; });
+      return { data: c.toDataURL('image/jpeg', 0.92), w: c.width, h: c.height };
     } catch { return null; }
   },
 
@@ -226,11 +231,11 @@ const PDFExport = {
       const w = img.naturalWidth || 400;
       const h = img.naturalHeight || 170;
       const c = document.createElement('canvas');
-      const scale = 3;
+      const scale = 6;
       c.width = w * scale; c.height = h * scale;
       const ctx = c.getContext('2d');
       ctx.drawImage(img, 0, 0, c.width, c.height);
-      return { data: c.toDataURL('image/png'), w: c.width, h: c.height };
+      return { data: c.toDataURL('image/png'), w: c.width, h: c.height, isPng: true };
     } catch { return null; }
   },
 
@@ -1009,6 +1014,7 @@ const PDFExport = {
     if (!imgObj) return;
     try {
       let data, iw, ih;
+      const isPng = imgObj && imgObj.isPng;
       if (typeof imgObj === 'string') {
         data = imgObj; iw = null; ih = null;
       } else {
@@ -1016,11 +1022,18 @@ const PDFExport = {
       }
       if (!data) return;
 
+      // PNG images (logos/SVGs): add directly without lossy re-encoding
+      if (isPng) {
+        const fmt = data.includes('image/png') ? 'PNG' : 'JPEG';
+        doc.addImage(data, fmt, x, y, w, h, undefined, 'FAST');
+        return;
+      }
+
       if (iw && ih) {
         // Cover-Crop: Bild proportional zuschneiden um Zielbereich zu füllen
         const targetR = w / h;
         const imgR = iw / ih;
-        const cW = Math.round(Math.min(w * 3, 1200));
+        const cW = Math.round(Math.min(w * 4, 1800));
         const cH = Math.round(cW / targetR);
         const c = document.createElement('canvas');
         c.width = cW; c.height = cH;
@@ -1032,16 +1045,14 @@ const PDFExport = {
 
         let sx, sy, sw, sh;
         if (imgR > targetR) {
-          // Bild breiter als Ziel → Seiten abschneiden
           sh = ih; sw = Math.round(ih * targetR);
           sx = Math.round((iw - sw) / 2); sy = 0;
         } else {
-          // Bild höher als Ziel → oben/unten abschneiden
           sw = iw; sh = Math.round(iw / targetR);
           sx = 0; sy = Math.round((ih - sh) / 2);
         }
         ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cW, cH);
-        data = c.toDataURL('image/jpeg', 0.8);
+        data = c.toDataURL('image/jpeg', 0.88);
       }
 
       const fmt = data.includes('image/png') ? 'PNG' : 'JPEG';
@@ -1059,7 +1070,7 @@ const PDFExport = {
       const iw = imgObj.w, ih = imgObj.h;
       if (!data) return;
 
-      const cW = Math.round(Math.min(w * 3, 1200));
+      const cW = Math.round(Math.min(w * 4, 1800));
       const targetR = w / h;
       const cH = Math.round(cW / targetR);
       const c = document.createElement('canvas');
@@ -1100,7 +1111,7 @@ const PDFExport = {
         ctx.drawImage(img, 0, 0, cW, cH);
       }
 
-      doc.addImage(c.toDataURL('image/jpeg', 0.8), 'JPEG', x, y, w, h, undefined, 'FAST');
+      doc.addImage(c.toDataURL('image/jpeg', 0.88), 'JPEG', x, y, w, h, undefined, 'FAST');
       // Subtle border
       doc.setDrawColor(...this.C.border);
       doc.setLineWidth(0.3);
