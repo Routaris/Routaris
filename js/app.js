@@ -809,7 +809,8 @@ const App = {
       if (e.target.id === 'train-hours-slider') {
         this.state.trainMaxHours = parseInt(e.target.value);
         const display = document.getElementById('train-hours-value');
-        if (display) display.textContent = `${this.state.trainMaxHours} Stunden Zugfahrt`;
+        const tLabel = (CountryConfig.current && CountryConfig.current.transitLabel) || 'Fahrzeit';
+        if (display) display.textContent = `${this.state.trainMaxHours} Stunden ${tLabel}`;
         // Slider-Fill
         const pct = ((this.state.trainMaxHours - 3) / (12 - 3)) * 100;
         e.target.style.setProperty('--fill-pct', `${pct}%`);
@@ -1233,7 +1234,8 @@ const App = {
       trainSlider.style.setProperty('--fill-pct', `${((6 - 3) / (12 - 3)) * 100}%`);
     }
     const trainDisplay = document.getElementById('train-hours-value');
-    if (trainDisplay) trainDisplay.textContent = '6 Stunden';
+    const initTransitLabel = (CountryConfig.current && CountryConfig.current.transitLabel) || 'Fahrzeit';
+    if (trainDisplay) trainDisplay.textContent = `6 Stunden ${initTransitLabel}`;
     const trainGroup = document.getElementById('train-hours-group');
     if (trainGroup) trainGroup.classList.remove('visible');
 

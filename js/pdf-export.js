@@ -1183,6 +1183,7 @@ const PDFExport = {
     if (stop.arrivalDate && stop.departureDate) {
       const arr = new Date(stop.arrivalDate + 'T12:00:00');
       const dep = new Date(stop.departureDate + 'T12:00:00');
+      if (arr.getTime() === dep.getTime()) return arr.toLocaleDateString('de-DE', opts);
       return `${arr.toLocaleDateString('de-DE', opts)} – ${dep.toLocaleDateString('de-DE', opts)}`;
     }
     if (App.state && App.state.arrivalDate) {
@@ -1191,9 +1192,12 @@ const PDFExport = {
       arr.setDate(arr.getDate() + startDay - 1);
       const dep = new Date(base);
       dep.setDate(dep.getDate() + startDay - 1 + stop.nights - 1);
+      if (arr.getTime() === dep.getTime()) return arr.toLocaleDateString('de-DE', opts);
       return `${arr.toLocaleDateString('de-DE', opts)} – ${dep.toLocaleDateString('de-DE', opts)}`;
     }
-    return `Tag ${startDay} bis ${startDay + stop.nights - 1}`;
+    const endDay = startDay + stop.nights - 1;
+    if (startDay === endDay) return `Tag ${startDay}`;
+    return `Tag ${startDay} bis ${endDay}`;
   },
 
   /**

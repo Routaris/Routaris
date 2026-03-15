@@ -4,13 +4,13 @@
 
 const Preferences = {
   categories: [
-    { key: 'Kultur',     icon: '🏛️', desc: 'Tempel, Museen, Traditionen',       color: 'var(--terracotta-pale)' },
-    { key: 'Natur',      icon: '🏔️', desc: 'Berge, Seen, Nationalparks',         color: 'var(--teal-pale)' },
-    { key: 'Geschichte', icon: '📜', desc: 'Historische Stätten, Dynastien',     color: 'var(--gold-pale)' },
-    { key: 'Großstadt',  icon: '🌆', desc: 'Skylines, Nachtleben, Shopping',     color: '#f3e8ff' },
-    { key: 'Erholung',   icon: '🧘', desc: 'Wellness, Gärten, Entschleunigung', color: '#fce4ec' },
-    { key: 'Abenteuer',  icon: '🧗', desc: 'Wandern, Glasbrücken, Outdoor',     color: '#fff8e1' },
-    { key: 'Kulinarik',  icon: '🍜', desc: 'Street Food, Restaurants, Teekultur', color: 'var(--terracotta-pale)' }
+    { key: 'Kultur',     icon: '🏛️', desc: 'Tempel, Museen, Traditionen',          color: 'var(--terracotta-pale)' },
+    { key: 'Natur',      icon: '🏔️', desc: 'Berge, Seen, Nationalparks',            color: 'var(--teal-pale)' },
+    { key: 'Geschichte', icon: '📜', desc: 'Historische Stätten, Architektur',      color: 'var(--gold-pale)' },
+    { key: 'Großstadt',  icon: '🌆', desc: 'Skylines, Nachtleben, Shopping',        color: '#f3e8ff' },
+    { key: 'Erholung',   icon: '🧘', desc: 'Wellness, Strände, Entschleunigung',   color: '#fce4ec' },
+    { key: 'Abenteuer',  icon: '🧗', desc: 'Wandern, Trekking, Outdoor',            color: '#fff8e1' },
+    { key: 'Kulinarik',  icon: '🍜', desc: 'Street Food, Restaurants, Lokale Küche', color: 'var(--terracotta-pale)' }
   ],
 
   presets: [
@@ -52,7 +52,7 @@ const Preferences = {
           <span class="range-label"><span class="pref-icon" style="background: ${cat.color}">${cat.icon}</span> ${cat.key}</span>
           <span class="range-value" id="pref-val-${cat.key}">${val}</span>
         </div>
-        <p class="text-xs text-muted" style="margin-bottom: 8px;">${cat.desc}</p>
+        <p class="text-xs text-muted" style="margin-bottom: 8px;">${(CountryConfig.current && CountryConfig.current.sliderDescs && CountryConfig.current.sliderDescs[cat.key]) || cat.desc}</p>
         <div class="range-slider">
           <input type="range"
                  min="0" max="10" step="1"

@@ -1291,7 +1291,8 @@
   border-bottom: 1px solid var(--border);
 }
 
-.result-header h2 {
+.result-header h1.result-route-title {
+  font-size: clamp(1.5rem, 4vw, 2.2rem);
   margin-bottom: var(--space-sm);
 }
 

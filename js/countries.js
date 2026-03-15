@@ -22,6 +22,12 @@ const CountryConfig = {
       countryInText: 'China',
       mapCenter: [33, 108],
       mapZoom: 4,
+      transitLabel: 'Zugfahrt',
+      sliderDescs: {
+        'Geschichte': 'Dynastien, Kaiserpaläste, Große Mauer',
+        'Abenteuer': 'Wandern, Glasbrücken, Outdoor',
+        'Kulinarik': 'Dim Sum, Straßenküche, Teekultur'
+      },
 
       destinations: null, // wird in init() gesetzt (DESTINATIONS aus destinations.js)
 
@@ -138,6 +144,11 @@ const CountryConfig = {
       countryInText: 'Vietnam',
       mapCenter: [16, 107],
       mapZoom: 5,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Geschichte': 'Kaiserstadt Hué, Altstadt Hoi An, Kriegsgeschichte',
+        'Kulinarik': 'Pho, Banh Mi, Straßenküche'
+      },
 
       destinations: null, // wird in init() gesetzt (VIETNAM_DESTINATIONS)
 
@@ -265,6 +276,12 @@ const CountryConfig = {
       countryInText: 'Japan',
       mapCenter: [36.5, 137.5],
       mapZoom: 5,
+      transitLabel: 'Zugfahrt',
+      sliderDescs: {
+        'Geschichte': 'Tempel, Samurai-Erbe, Burgen',
+        'Kulinarik': 'Sushi, Ramen, Izakaya-Kultur',
+        'Erholung': 'Onsen, Zen-Gärten, Teezeremonie'
+      },
 
       destinations: null, // wird in init() gesetzt (JAPAN_DESTINATIONS)
 
@@ -394,6 +411,11 @@ const CountryConfig = {
       countryInText: 'Thailand',
       mapCenter: [13.5, 101.0],
       mapZoom: 5,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Kulinarik': 'Pad Thai, Curries, Garküchen',
+        'Erholung': 'Wellness, Inselstrände, Thai-Massage'
+      },
 
       destinations: null, // wird in init() gesetzt (THAILAND_DESTINATIONS)
 
@@ -523,6 +545,11 @@ const CountryConfig = {
       countryInText: 'Indonesien',
       mapCenter: [-2.5, 118],
       mapZoom: 4,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Kultur': 'Tempel, Zeremonien, Batik-Kunst',
+        'Erholung': 'Strände, Yoga, Reisterrassen'
+      },
 
       destinations: null, // wird in init() gesetzt (INDONESIA_DESTINATIONS)
 
@@ -661,6 +688,11 @@ const CountryConfig = {
       countryInText: 'Kambodscha',
       mapCenter: [12.5, 105],
       mapZoom: 7,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Geschichte': 'Angkor Wat, Khmer-Reich',
+        'Kultur': 'Tempel, Traditionen, Handwerk'
+      },
 
       destinations: null, // wird in init() gesetzt (CAMBODIA_DESTINATIONS)
 
@@ -782,6 +814,11 @@ const CountryConfig = {
     countryInText: 'Sri Lanka',
     mapCenter: [7.8, 80.7],
     mapZoom: 7,
+    transitLabel: 'Busfahrt',
+    sliderDescs: {
+      'Geschichte': 'Antike Königsstädte, Felsenfestungen',
+      'Natur': 'Teeplantagen, Safaris, Strände'
+    },
 
     destinations: null, // wird in init() gesetzt (SRILANKA_DESTINATIONS)
 
@@ -901,6 +938,11 @@ const CountryConfig = {
       countryInText: 'die Philippinen',
       mapCenter: [12.5, 122],
       mapZoom: 6,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Natur': 'Inseln, Lagunen, Reisterrassen',
+        'Abenteuer': 'Tauchen, Island-Hopping, Surfen'
+      },
 
       destinations: null,
 
@@ -1033,6 +1075,11 @@ Transport: "Jeepney" (Jeepneys), "2GO_Travel" (Fähren)`,
       countryInText: 'Südkorea',
       mapCenter: [36.0, 127.8],
       mapZoom: 7,
+      transitLabel: 'Zugfahrt',
+      sliderDescs: {
+        'Geschichte': 'Paläste, Konfuzianismus, DMZ',
+        'Kulinarik': 'BBQ, Kimchi, Streetfood-Märkte'
+      },
 
       destinations: null,
 
@@ -1158,6 +1205,11 @@ Transport: "Korea_Train_Express" (KTX Hochgeschwindigkeitszug)`,
       countryInText: 'Laos',
       mapCenter: [18.5, 103.5],
       mapZoom: 6,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Kultur': 'Tempel, Mönche, Almosengang',
+        'Natur': 'Mekong, Wasserfälle, Höhlen'
+      },
 
       destinations: null,
 
@@ -1279,6 +1331,11 @@ Transport: "Boten–Vientiane_railway" (Laos-China-Eisenbahn)`,
       countryInText: 'Namibia',
       mapCenter: [-22, 17],
       mapZoom: 5,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Natur': 'Wüste, Safaris, Sternenbeobachtung',
+        'Abenteuer': 'Dünen, 4x4-Trails, Wandern'
+      },
 
       destinations: null,
 
@@ -1402,6 +1459,11 @@ Kultur: "Himba_people" (Himba), "San_people" (San/Buschleute), "Herero_people" (
       countryInText: 'Südafrika',
       mapCenter: [-29, 25],
       mapZoom: 5,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Natur': 'Safaris, Tafelberg, Garden Route',
+        'Abenteuer': 'Bungee, Shark Diving, Wandern'
+      },
 
       destinations: null,
 
@@ -1531,6 +1593,11 @@ Kultur: "Karoo", "Route_62_(South_Africa)" (Route 62), "Coffee_Bay" (Wild Coast)
       countryInText: 'Costa Rica',
       mapCenter: [9.8, -84.2],
       mapZoom: 7,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Natur': 'Regenwald, Vulkane, Strände',
+        'Abenteuer': 'Zip-Lining, Rafting, Surfen'
+      },
 
       destinations: null,
 
@@ -1655,6 +1722,11 @@ Sehenswürdigkeiten: "Arenal_Volcano" (Vulkan Arenal), "Monteverde" (Nebelwald),
       countryInText: 'Australien',
       mapCenter: [-25, 134],
       mapZoom: 4,
+      transitLabel: 'Zugfahrt',
+      sliderDescs: {
+        'Natur': 'Outback, Great Barrier Reef, Küsten',
+        'Abenteuer': 'Surfen, Tauchen, Bushwalking'
+      },
 
       destinations: null,
 
@@ -1787,6 +1859,12 @@ Kultur: "Aboriginal_Australians" (Aboriginal-Kultur), "Quokka", "Barossa_Valley"
       countryInText: 'Peru',
       mapCenter: [-10, -75],
       mapZoom: 5,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Geschichte': 'Inka-Ruinen, Kolonialstädte, Nazca',
+        'Abenteuer': 'Trekking, Inka-Trail, Bergsteigen',
+        'Kulinarik': 'Ceviche, Pisco, Andine Küche'
+      },
 
       destinations: null,
 
@@ -1904,6 +1982,11 @@ Kultur: "Aboriginal_Australians" (Aboriginal-Kultur), "Quokka", "Barossa_Valley"
       countryInText: 'Mexiko',
       mapCenter: [23.5, -102],
       mapZoom: 5,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Geschichte': 'Maya-Ruinen, Azteken-Tempel, Kolonialstädte',
+        'Kulinarik': 'Tacos, Mole, Mezcal'
+      },
 
       destinations: null,
 
@@ -2030,6 +2113,11 @@ Kultur: "Aboriginal_Australians" (Aboriginal-Kultur), "Quokka", "Barossa_Valley"
       countryInText: 'Chile',
       mapCenter: [-33, -71],
       mapZoom: 4,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Natur': 'Atacama-Wüste, Patagonien, Vulkane',
+        'Abenteuer': 'Trekking, Torres del Paine, Skifahren'
+      },
 
       destinations: null,
 
@@ -2170,6 +2258,12 @@ Kultur: "Aboriginal_Australians" (Aboriginal-Kultur), "Quokka", "Barossa_Valley"
       countryInText: 'Kolumbien',
       mapCenter: [4.5, -74.0],
       mapZoom: 5,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Geschichte': 'Kolonialstädte, Präkolumbische Kunst',
+        'Kulinarik': 'Arepas, Kaffeekultur, Bandeja Paisa',
+        'Abenteuer': 'Wandern, Rafting, Paragliding'
+      },
 
       destinations: null,
 
@@ -2305,6 +2399,12 @@ Kultur: "Aboriginal_Australians" (Aboriginal-Kultur), "Quokka", "Barossa_Valley"
       countryInText: 'Indien',
       mapCenter: [22, 79],
       mapZoom: 5,
+      transitLabel: 'Zugfahrt',
+      sliderDescs: {
+        'Geschichte': 'Mogul-Paläste, Tempel, Forts',
+        'Kulinarik': 'Curries, Street Food, Chai-Kultur',
+        'Kultur': 'Tempel, Festivals, Traditionen'
+      },
 
       destinations: null,
 
@@ -2446,6 +2546,11 @@ Kultur: "Aboriginal_Australians" (Aboriginal-Kultur), "Quokka", "Barossa_Valley"
       countryInText: 'Guatemala',
       mapCenter: [15.0, -90.3],
       mapZoom: 7,
+      transitLabel: 'Busfahrt',
+      sliderDescs: {
+        'Geschichte': 'Maya-Ruinen, Koloniale Kirchen',
+        'Kultur': 'Maya-Traditionen, Märkte, Textilien'
+      },
 
       destinations: null,
 

@@ -19,6 +19,7 @@ const Results = {
     if (stop.arrivalDate && stop.departureDate) {
       const arr = new Date(stop.arrivalDate + 'T12:00:00');
       const dep = new Date(stop.departureDate + 'T12:00:00');
+      if (arr.getTime() === dep.getTime()) return arr.toLocaleDateString('de-DE', opts);
       return `${arr.toLocaleDateString('de-DE', opts)} – ${dep.toLocaleDateString('de-DE', opts)}`;
     }
     // Option 2: Berechne aus App.state.arrivalDate
@@ -29,10 +30,13 @@ const Results = {
       arr.setDate(arr.getDate() + startDay - 1);
       const dep = new Date(base);
       dep.setDate(dep.getDate() + startDay - 1 + stop.nights - 1);
+      if (arr.getTime() === dep.getTime()) return arr.toLocaleDateString('de-DE', opts);
       return `${arr.toLocaleDateString('de-DE', opts)} – ${dep.toLocaleDateString('de-DE', opts)}`;
     }
-    // Fallback: Tag-Nummern
-    return `Tag ${startDay}–${startDay + stop.nights - 1}`;
+    // Fallback: Tag-Nummern (Singular wenn nur ein Tag)
+    const endDay = startDay + stop.nights - 1;
+    if (startDay === endDay) return `Tag ${startDay}`;
+    return `Tag ${startDay}–${endDay}`;
   },
 
   /**
@@ -161,7 +165,7 @@ const Results = {
       : `${firstCity} → ${lastCity}`;
 
     container.innerHTML = `
-      <h2>${result.routeName}</h2>
+      <h1 class="result-route-title">${result.routeName}</h1>
       <p>${result.routeDescription}</p>
       <div class="result-route-label">${routeLabel}</div>
       <div class="result-stats">
