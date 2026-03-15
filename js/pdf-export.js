@@ -148,6 +148,10 @@ const PDFExport = {
     const heroPath = cc ? `images/hero/${cc.id}.jpg` : 'images/hero/hero-bg.jpg';
     tasks.push(this._imgData(heroPath).then(d => { imgs.hero = d; }));
     tasks.push(this._loadSvg('CI/routaris-wordmark-notag.svg').then(d => { imgs.logo = d; }));
+    tasks.push(this._loadSvg('CI/routaris-wordmark-light.svg').then(d => {
+      if (d) { imgs.logoLight = d; }
+      else { return this._loadSvg('CI/routaris-wordmark.svg').then(d2 => { imgs.logoLight = d2; }); }
+    }));
     tasks.push(this._captureMap().then(d => { imgs.map = d; }));
     for (let i = 0; i < result.stops.length; i++) {
       const stop = result.stops[i];
@@ -196,7 +200,7 @@ const PDFExport = {
         const result = App.state.result;
         if (result && result.stops && result.stops.length > 1) {
           const latlngs = result.stops.map(s => [s.lat, s.lng]);
-          Results.map.fitBounds(L.latLngBounds(latlngs).pad(0.15));
+          Results.map.fitBounds(L.latLngBounds(latlngs).pad(0.25));
         }
         // Wait for map animation + tile loading
         await new Promise(r => {
@@ -247,6 +251,14 @@ const PDFExport = {
       doc.rect(0, 0, this.PW, heroH, 'F');
     }
 
+    // Logo with tagline at top of cover (on hero image)
+    const coverLogo = imgs.logoLight || imgs.logo;
+    if (coverLogo) {
+      doc.setFillColor(...C.overlay);
+      doc.rect(0, 0, this.PW, 30, 'F');
+      await this._img(doc, coverLogo, this.PW / 2 - 32, 4, 64, 22);
+    }
+
     // Pre-calculate text layout to size overlay correctly
     const name = this._clean(result.routeName || 'Deine Reiseroute');
     doc.setFont(this.FD, 'normal');
@@ -258,7 +270,7 @@ const PDFExport = {
     doc.setFontSize(10);
     let descLines = [];
     if (result.routeDescription) {
-      descLines = doc.splitTextToSize(this._clean(result.routeDescription), this.CW).slice(0, 2);
+      descLines = doc.splitTextToSize(this._clean(result.routeDescription), this.CW).slice(0, 5);
     }
     const descH = descLines.length * 5;
 
@@ -281,7 +293,7 @@ const PDFExport = {
       y += 12;
     });
 
-    // Description
+    // Description – full text (up to 5 lines)
     if (descLines.length > 0) {
       y += 3;
       doc.setFont(this.FB, 'normal');
@@ -292,8 +304,8 @@ const PDFExport = {
       });
     }
 
-    // Stats bar
-    y = heroH + 14;
+    // Stats bar – increased spacing
+    y = heroH + 22;
     doc.setFillColor(...C.white);
     doc.roundedRect(this.M, y - 8, this.CW, 30, 5, 5, 'F');
 
@@ -327,17 +339,16 @@ const PDFExport = {
       }
     });
 
-    // Logo + brand
-    y = this.PH - 38;
-    if (imgs.logo) {
-      await this._img(doc, imgs.logo, this.PW / 2 - 28, y, 56, 24);
-      y += 28;
-    }
+    // Brand name at bottom
+    y = this.PH - 30;
     const cc = CountryConfig.current;
     doc.setFont(this.FB, 'normal');
-    doc.setFontSize(9);
+    doc.setFontSize(10);
     doc.setTextColor(...C.inkMuted);
     doc.text(cc ? cc.brandName : 'Routaris', this.PW / 2, y, { align: 'center' });
+    y += 6;
+    doc.setFontSize(8);
+    doc.text('routaris.com', this.PW / 2, y, { align: 'center' });
   },
 
   // ═══════════════════════════════════════
@@ -357,7 +368,7 @@ const PDFExport = {
     if (imgs.map) {
       const mapW = this.CW;
       const mapRatio = (imgs.map.w && imgs.map.h) ? imgs.map.w / imgs.map.h : 1.8;
-      const mapH = Math.min(Math.round(mapW / mapRatio), 110);
+      const mapH = Math.min(Math.round(mapW / mapRatio), 130);
       doc.setFillColor(...C.white);
       doc.roundedRect(this.M - 1, y - 1, mapW + 2, mapH + 2, 3, 3, 'F');
       await this._img(doc, imgs.map, this.M, y, mapW, mapH);
@@ -396,7 +407,7 @@ const PDFExport = {
       doc.setFont(this.FB, 'normal');
       doc.setFontSize(9);
       doc.setTextColor(...C.terra);
-      doc.text(`${stop.nights} N\u00E4chte`, this.M + this.CW, y + 3, { align: 'right' });
+      doc.text(`${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'N\u00E4chte'}`, this.M + this.CW, y + 3, { align: 'right' });
 
       y += 9;
 
@@ -486,21 +497,40 @@ const PDFExport = {
       doc.setFont(this.FB, 'normal');
       doc.setFontSize(9);
       doc.setTextColor(...C.terraPale);
-      doc.text(`${stop.nights} N\u00E4chte  |  ${this._dateRange(stop, sd)}`, this.M + 14, 66);
+      const nightsLbl = stop.nights === 1 ? 'Nacht' : 'N\u00E4chte';
+      doc.text(`${stop.nights} ${nightsLbl}  |  ${this._dateRange(stop, sd)}`, this.M + 14, 66);
+
+      // Mini-map in top right corner
+      this._drawMiniMap(doc, result, idx);
 
       y = 74;
     } else {
       await this._header(doc, imgs);
+
+      // Consistent circle-badge header (same design as with-image version)
+      const hy = 24;
       doc.setFillColor(...C.terra);
-      doc.roundedRect(this.M, 18, this.CW, 22, 4, 4, 'F');
-      doc.setFont(this.FD, 'normal');
-      doc.setFontSize(20);
-      doc.setTextColor(...C.white);
-      doc.text(`${idx + 1}.  ${this._clean(stop.city)}`, this.M + 8, 32);
+      doc.circle(this.M + 5, hy, 5.5, 'F');
       doc.setFont(this.FB, 'normal');
-      doc.setFontSize(8);
-      doc.text(`${stop.nights} N\u00E4chte  |  ${this._dateRange(stop, sd)}`, this.M + this.CW - 5, 32, { align: 'right' });
-      y = 46;
+      doc.setFontSize(10);
+      doc.setTextColor(...C.white);
+      doc.text(String(idx + 1), this.M + 5, hy + 2, { align: 'center' });
+
+      doc.setFont(this.FD, 'normal');
+      doc.setFontSize(24);
+      doc.setTextColor(...C.ink);
+      doc.text(this._clean(stop.city), this.M + 14, hy + 4);
+
+      doc.setFont(this.FB, 'normal');
+      doc.setFontSize(9);
+      doc.setTextColor(...C.terra);
+      const nightsLabel = stop.nights === 1 ? 'Nacht' : 'N\u00E4chte';
+      doc.text(`${stop.nights} ${nightsLabel}  |  ${this._dateRange(stop, sd)}`, this.M + 14, hy + 12);
+
+      // Mini-map in top right corner
+      this._drawMiniMap(doc, result, idx);
+
+      y = 44;
     }
 
     // ══════════════════════════════════
@@ -522,18 +552,19 @@ const PDFExport = {
       this._sec(doc, 'Highlights', y);
       y += 12;
 
-      // 2-column image grid
+      // 2-column image grid with rounded corners + uniform height
       if (showImages && hasImages) {
         const gap = 8;
         const colW = (this.CW - gap) / 2;
-        const imgH = 32;
+        const imgH = 34;
         const img0 = imgs.hl[`${idx}-0`];
         const img1 = imgs.hl[`${idx}-1`];
 
         if (img0) {
-          await this._img(doc, img0, this.M, y, colW, imgH);
+          await this._imgRounded(doc, img0, this.M, y, colW, imgH, 3);
+          // Label overlay at bottom
           doc.setFillColor(...C.overlay);
-          doc.rect(this.M, y + imgH - 10, colW, 10, 'F');
+          doc.roundedRect(this.M, y + imgH - 10, colW, 10, 0, 0, 'F');
           doc.setFont(this.FB, 'normal');
           doc.setFontSize(7.5);
           doc.setTextColor(...C.white);
@@ -544,9 +575,9 @@ const PDFExport = {
         }
         const rx = this.M + colW + gap;
         if (img1) {
-          await this._img(doc, img1, rx, y, colW, imgH);
+          await this._imgRounded(doc, img1, rx, y, colW, imgH, 3);
           doc.setFillColor(...C.overlay);
-          doc.rect(rx, y + imgH - 10, colW, 10, 'F');
+          doc.roundedRect(rx, y + imgH - 10, colW, 10, 0, 0, 'F');
           doc.setFont(this.FB, 'normal');
           doc.setFontSize(7.5);
           doc.setTextColor(...C.white);
@@ -558,7 +589,7 @@ const PDFExport = {
         y += imgH + 5;
       }
 
-      // Compact text list
+      // Highlight list with full descriptions
       highlights.slice(0, maxHlText).forEach(h => {
         if (y > PAGE_BOTTOM - 30) return;
         doc.setFillColor(...C.terra);
@@ -568,21 +599,23 @@ const PDFExport = {
         doc.setTextColor(...C.ink);
         const title = this._clean(h.title);
         doc.text(title, this.M + 5, y + 3);
+        y += 5;
 
         if (h.description) {
-          const tw = doc.getTextWidth(title);
-          const avail = this.CW - 7 - tw;
-          if (avail > 20) {
-            doc.setFont(this.FB, 'normal');
-            doc.setFontSize(8);
-            doc.setTextColor(...C.inkLight);
-            const d = doc.splitTextToSize(' - ' + this._clean(h.description), avail);
-            doc.text(d[0] || '', this.M + 5 + tw, y + 3);
-          }
+          doc.setFont(this.FB, 'normal');
+          doc.setFontSize(7.5);
+          doc.setTextColor(...C.inkLight);
+          const descText = this._clean(h.description);
+          const descLines = doc.splitTextToSize(descText, this.CW - 7);
+          descLines.slice(0, 2).forEach(line => {
+            if (y > PAGE_BOTTOM - 25) return;
+            doc.text(line, this.M + 5, y + 1);
+            y += 3.5;
+          });
         }
-        y += 6.5;
+        y += 3;
       });
-      y += 3;
+      y += 2;
     }
 
     // ══════════════════════════════════
@@ -673,25 +706,22 @@ const PDFExport = {
     //  TRANSPORT BAR (pinned near bottom)
     // ══════════════════════════════════
     if (leg) {
-      const barY = Math.max(y, PAGE_BOTTOM - 20);
+      const barY = Math.max(y, PAGE_BOTTOM - 16);
       const mode = Results.normalizeLegMode(leg.mode);
       const label = this.MODE_LABELS[mode] || 'Transfer';
-      const isFlug = mode === 'flight' || mode === 'domestic_flight';
       const nextCity = this._clean(result.stops[idx + 1].city);
 
+      // Subtle separator line
+      doc.setDrawColor(...C.border);
+      doc.setLineWidth(0.3);
+      doc.line(this.M, barY, this.M + this.CW, barY);
+
+      // Teal text with arrow (dezent, not a full button)
       doc.setFont(this.FB, 'normal');
       doc.setFontSize(9);
-      let transportText = `Weiterreise nach ${nextCity}  |  ${label}, ${leg.duration}, ${leg.cost}`;
-      // Truncate if too long for one line
-      const maxTextW = this.CW - 14;
-      if (doc.getTextWidth(transportText) > maxTextW) {
-        transportText = `Nach ${nextCity}  |  ${label}, ${leg.duration}, ${leg.cost}`;
-      }
-
-      doc.setFillColor(...(isFlug ? C.terra : C.teal));
-      doc.roundedRect(this.M, barY, this.CW, 14, 4, 4, 'F');
-      doc.setTextColor(...C.white);
-      doc.text(transportText, this.PW / 2, barY + 9, { align: 'center', maxWidth: maxTextW });
+      doc.setTextColor(...C.teal);
+      const transportText = `Weiterreise nach ${nextCity}  \u2192  ${label}, ${leg.duration}, ${leg.cost}`;
+      doc.text(transportText, this.M, barY + 8, { maxWidth: this.CW });
     }
   },
 
@@ -747,6 +777,61 @@ const PDFExport = {
 
       y += 2 * (cardH + gap) + 6;
 
+      // Visual budget breakdown – horizontal stacked bar
+      const vals = items.map(it => {
+        const raw = (it.value || '0').match(/[\d.,]+/);
+        if (!raw) return 0;
+        // German number format: 1.200 = 1200, 1.200,50 = 1200.50
+        const cleaned = raw[0].replace(/\./g, '').replace(',', '.');
+        const num = parseFloat(cleaned);
+        return isNaN(num) ? 0 : num;
+      });
+      const valTotal = vals.reduce((a, b) => a + b, 0);
+      if (valTotal > 0) {
+        const barH = 10;
+        const barW = this.CW;
+        let barX = this.M;
+        const barColors = [C.terra, C.teal, C.terraDark, C.tealDark];
+        const barLabels = ['Unterkunft', 'Essen', 'Transport', 'Aktivit\u00E4ten'];
+
+        vals.forEach((v, i) => {
+          const w = (v / valTotal) * barW;
+          if (w > 0) {
+            doc.setFillColor(...barColors[i]);
+            doc.rect(barX, y, w, barH, 'F');
+            if (w > 22) {
+              doc.setFont(this.FB, 'normal');
+              doc.setFontSize(6);
+              doc.setTextColor(...C.white);
+              doc.text(barLabels[i], barX + w / 2, y + 6.5, { align: 'center' });
+            }
+            barX += w;
+          }
+        });
+        // Rounded corners overlay: left + right edge
+        doc.setDrawColor(...C.border);
+        doc.setLineWidth(0.3);
+        doc.roundedRect(this.M, y, this.CW, barH, 3, 3, 'S');
+
+        // Legend
+        y += barH + 5;
+        let legendX = this.M;
+        vals.forEach((v, i) => {
+          if (v > 0) {
+            const pct = Math.round((v / valTotal) * 100);
+            doc.setFillColor(...barColors[i]);
+            doc.circle(legendX + 2, y + 1, 1.5, 'F');
+            doc.setFont(this.FB, 'normal');
+            doc.setFontSize(7);
+            doc.setTextColor(...C.inkLight);
+            const lt = `${barLabels[i]} ${pct}%`;
+            doc.text(lt, legendX + 5, y + 2.5);
+            legendX += doc.getTextWidth(lt) + 9;
+          }
+        });
+        y += 10;
+      }
+
       doc.setFillColor(...C.terra);
       doc.roundedRect(this.M, y, this.CW, 20, 4, 4, 'F');
       doc.setFont(this.FD, 'normal');
@@ -789,7 +874,7 @@ const PDFExport = {
         doc.setTextColor(...C.inkLight);
         lines.forEach((line, li) => { doc.text(line, this.M + 10, y + 15 + li * 4.3); });
 
-        y += cardH + 5;
+        y += cardH + 8;
       }
     }
   },
@@ -888,7 +973,7 @@ const PDFExport = {
     doc.setFont(this.FB, 'normal');
     doc.setFontSize(7);
     doc.setTextColor(...C.inkMuted);
-    doc.text('Routaris' + (cc ? '  |  ' + cc.brandName : ''), this.M, this.PH - 8);
+    doc.text('Routaris' + (cc ? '  |  ' + cc.brandName : '') + '  |  routaris.com', this.M, this.PH - 8);
     doc.text(page + ' / ' + total, this.PW - this.M, this.PH - 8, { align: 'right' });
   },
 
@@ -962,6 +1047,120 @@ const PDFExport = {
       const fmt = data.includes('image/png') ? 'PNG' : 'JPEG';
       doc.addImage(data, fmt, x, y, w, h, undefined, 'FAST');
     } catch (e) { console.warn('[PDF] Bild-Fehler:', e.message); }
+  },
+
+  /**
+   * Platziert ein Bild mit abgerundeten Ecken (via Canvas-Clipping).
+   */
+  async _imgRounded(doc, imgObj, x, y, w, h, radius) {
+    if (!imgObj) return;
+    try {
+      let data = typeof imgObj === 'string' ? imgObj : imgObj.data;
+      const iw = imgObj.w, ih = imgObj.h;
+      if (!data) return;
+
+      const cW = Math.round(Math.min(w * 3, 1200));
+      const targetR = w / h;
+      const cH = Math.round(cW / targetR);
+      const c = document.createElement('canvas');
+      c.width = cW; c.height = cH;
+      const ctx = c.getContext('2d');
+
+      // Rounded corner clipping
+      const cr = radius * (cW / w);
+      ctx.beginPath();
+      ctx.moveTo(cr, 0);
+      ctx.lineTo(cW - cr, 0);
+      ctx.quadraticCurveTo(cW, 0, cW, cr);
+      ctx.lineTo(cW, cH - cr);
+      ctx.quadraticCurveTo(cW, cH, cW - cr, cH);
+      ctx.lineTo(cr, cH);
+      ctx.quadraticCurveTo(0, cH, 0, cH - cr);
+      ctx.lineTo(0, cr);
+      ctx.quadraticCurveTo(0, 0, cr, 0);
+      ctx.closePath();
+      ctx.clip();
+
+      const img = new Image();
+      img.src = data;
+      await img.decode();
+
+      if (iw && ih) {
+        let sx, sy, sw, sh;
+        const imgR = iw / ih;
+        if (imgR > targetR) {
+          sh = ih; sw = Math.round(ih * targetR);
+          sx = Math.round((iw - sw) / 2); sy = 0;
+        } else {
+          sw = iw; sh = Math.round(iw / targetR);
+          sx = 0; sy = Math.round((ih - sh) / 2);
+        }
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, cW, cH);
+      } else {
+        ctx.drawImage(img, 0, 0, cW, cH);
+      }
+
+      doc.addImage(c.toDataURL('image/jpeg', 0.8), 'JPEG', x, y, w, h, undefined, 'FAST');
+      // Subtle border
+      doc.setDrawColor(...this.C.border);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(x, y, w, h, radius, radius, 'S');
+    } catch {
+      await this._img(doc, imgObj, x, y, w, h);
+    }
+  },
+
+  /**
+   * Zeichnet eine Mini-Routenkarte in der Ecke einer Stopp-Seite.
+   */
+  _drawMiniMap(doc, result, currentIdx) {
+    const C = this.C;
+    const stops = result.stops;
+    if (!stops || stops.length < 2) return;
+
+    const mapW = 34;
+    const mapH = 30;
+    const mapX = this.PW - this.M - mapW;
+    const mapY = 5;
+
+    doc.setFillColor(...C.white);
+    doc.roundedRect(mapX, mapY, mapW, mapH, 3, 3, 'F');
+    doc.setDrawColor(...C.border);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(mapX, mapY, mapW, mapH, 3, 3, 'S');
+
+    const lats = stops.map(s => s.lat);
+    const lngs = stops.map(s => s.lng);
+    const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+    const minLng = Math.min(...lngs), maxLng = Math.max(...lngs);
+    const padLat = (maxLat - minLat) * 0.2 || 1;
+    const padLng = (maxLng - minLng) * 0.2 || 1;
+
+    const toX = lng => mapX + 4 + ((lng - minLng + padLng) / (maxLng - minLng + 2 * padLng)) * (mapW - 8);
+    const toY = lat => mapY + mapH - 4 - ((lat - minLat + padLat) / (maxLat - minLat + 2 * padLat)) * (mapH - 8);
+
+    // Route lines
+    doc.setDrawColor(...C.border);
+    doc.setLineWidth(0.4);
+    for (let i = 0; i < stops.length - 1; i++) {
+      doc.line(toX(stops[i].lng), toY(stops[i].lat), toX(stops[i + 1].lng), toY(stops[i + 1].lat));
+    }
+
+    // Stop dots
+    stops.forEach((s, i) => {
+      const px = toX(s.lng), py = toY(s.lat);
+      if (i === currentIdx) {
+        doc.setFillColor(...C.terra);
+        doc.circle(px, py, 2.2, 'F');
+        doc.setFont(this.FB, 'normal');
+        doc.setFontSize(4.5);
+        doc.setTextColor(...C.white);
+        doc.text(String(i + 1), px, py + 1.1, { align: 'center' });
+      } else {
+        doc.setFillColor(...C.inkMuted);
+        doc.circle(px, py, 1, 'F');
+      }
+    });
   },
 
   /**

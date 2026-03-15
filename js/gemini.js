@@ -277,11 +277,11 @@ BILDER – EXTREM WICHTIG:
   ${cc.wikiReferences}
   Für andere Sehenswürdigkeiten: Verwende den genauen englischen Wikipedia-Artikeltitel. Prüfe gedanklich, ob der Artikel existiert und ein Bild hat.
 - "legs" enthält die Transportverbindungen zwischen ALLEN aufeinanderfolgenden Stopps, INKLUSIVE dem Rücktransfer zum Abreiseort (${returnStr}) als letztes Leg (auch wenn Start- und Endstadt identisch sind!)
-- Alle Texte auf Deutsch
+- Alle Texte auf Deutsch, IMMER in der Du-Ansprache (informell, z.B. "Erkunde die Altstadt", "Dein erster Tag", niemals "Sie/Ihre/Ihnen")
 - Nutze passende Emojis für Icons
 - Kosten in Euro (ungefähre Umrechnung)
 - "budget" enthält eine grobe Kostenschätzung für die gesamte Reise pro Person (Mittelklasse-Hotels, lokales Essen, alle Transportkosten, Eintritte)
-- "travelInfo" enthält 4-5 allgemeine Reisetipps passend zur Reise: z.B. Visum, SIM-Karte/Internet, Bezahlen, Sprache/Apps, beste Reise-Apps, Gesundheit – je nach Saison und Reisegruppe anpassen`;
+- "travelInfo" enthält 4-5 allgemeine Reisetipps passend zur Reise: z.B. Visum, SIM-Karte/Internet, Bezahlen, Sprache/Apps, beste Reise-Apps, Gesundheit – je nach Saison und Reisegruppe anpassen${cc.id === 'china' ? '\n- WICHTIG für travelInfo: Erwähne unbedingt, dass man VPN-Apps (z.B. ExpressVPN, NordVPN) UNBEDINGT VOR der Einreise nach China installieren und einrichten muss, da Google Play Store, App Store Downloads und VPN-Websites in China blockiert sind!' : ''}`;
   },
 
   /**
@@ -413,7 +413,7 @@ Wichtig:
 - JEDER Stopp braucht ein "wiki"-Feld mit dem EXAKTEN englischen Wikipedia-Artikelnamen
 - JEDES Highlight braucht ein "wiki"-Feld mit dem EXAKTEN englischen Wikipedia-Artikelnamen
 - "legs" enthält Transportverbindungen zwischen ALLEN aufeinanderfolgenden Stopps
-- Alle Texte auf Deutsch, Kosten in Euro
+- Alle Texte auf Deutsch, IMMER in der Du-Ansprache (informell, z.B. "Erkunde die Altstadt", "Dein erster Tag", niemals "Sie/Ihre/Ihnen"), Kosten in Euro
 - Referenz-Wiki-Titel: ${cc.adjustWikiReferences}`;
   },
 
