@@ -554,15 +554,28 @@ const Results = {
         const isBoatLeg = legMode === 'boat';
         const isCarLeg = legMode === 'car';
 
+        const lineColor = isFlightLeg ? C.terracotta : isCarLeg ? C.gold : (isBusLeg || isBoatLeg) ? C.teal : C.terracotta;
+
+        // Glow-Linie (breitere, transparente Unterlage)
+        drawCurve(
+          [fromStop.lat, fromStop.lng],
+          [toStop.lat, toStop.lng],
+          { color: lineColor, weight: 8, opacity: 0.12, fill: false, lineCap: 'round' },
+          side
+        );
+
+        // Hauptlinie
         drawCurve(
           [fromStop.lat, fromStop.lng],
           [toStop.lat, toStop.lng],
           {
-            color: isFlightLeg ? C.terracotta : isCarLeg ? C.gold : (isBusLeg || isBoatLeg) ? C.teal : C.terracotta,
-            weight: 3,
-            opacity: isFlightLeg ? 0.5 : 0.6,
+            color: lineColor,
+            weight: 3.5,
+            opacity: isFlightLeg ? 0.55 : 0.65,
             dashArray: isFlightLeg ? '8, 8' : isBusLeg ? '5, 5' : isBoatLeg ? '4, 6' : isCarLeg ? null : null,
-            fill: false
+            fill: false,
+            lineCap: 'round',
+            lineJoin: 'round'
           },
           side
         );

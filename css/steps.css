@@ -1346,8 +1346,9 @@
   position: relative;
   border-radius: var(--radius-lg);
   overflow: hidden;
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-lg);
   margin-bottom: var(--space-xl);
+  border: 1px solid rgba(0,0,0,0.06);
 }
 
 /* Map Export Button */
@@ -1504,7 +1505,7 @@
 }
 
 #result-map {
-  height: 420px;
+  height: 460px;
   width: 100%;
 }
 
@@ -2841,14 +2842,36 @@
 
 .premium-marker svg {
   overflow: visible;
-  transition: transform 0.15s ease;
+  transition: transform 0.25s var(--ease-bounce), filter 0.2s ease;
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2));
 }
 
 .premium-marker:hover svg {
-  transform: scale(1.1) translateY(-2px);
+  transform: scale(1.15) translateY(-4px);
+  filter: drop-shadow(0 6px 12px rgba(0,0,0,0.3));
 }
 
-/* Thumbnail Markers (zoom ≥ 7) */
+/* Active marker pulse animation */
+.premium-marker.active-marker svg {
+  animation: markerPulse 2s ease-in-out infinite;
+}
+
+@keyframes markerPulse {
+  0%, 100% { transform: scale(1); filter: drop-shadow(0 3px 6px rgba(0,0,0,0.2)); }
+  50% { transform: scale(1.08) translateY(-2px); filter: drop-shadow(0 5px 10px rgba(196,101,74,0.35)); }
+}
+
+/* Marker entry animation */
+.premium-marker.marker-enter svg {
+  animation: markerDrop 0.5s var(--ease-bounce) forwards;
+}
+
+@keyframes markerDrop {
+  0% { transform: translateY(-20px) scale(0.5); opacity: 0; }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+
+/* Thumbnail Markers (zoom ≥ 5) */
 .thumb-marker {
   position: relative;
   border-radius: 50%;
@@ -2859,14 +2882,14 @@
   border-radius: 50%;
   object-fit: cover;
   border: 3px solid white;
-  box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+  box-shadow: 0 3px 12px rgba(0,0,0,0.25), 0 0 0 1px rgba(0,0,0,0.05);
   display: block;
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  transition: transform 0.25s var(--ease-bounce), box-shadow 0.25s ease;
 }
 
 .premium-thumb:hover .thumb-marker-img {
-  transform: scale(1.08);
-  box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+  transform: scale(1.12);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.35), 0 0 0 2px rgba(196,101,74,0.3);
 }
 
 .thumb-marker-badge {
@@ -2880,8 +2903,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid white;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  border: 2.5px solid white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   line-height: 1;
 }
 
@@ -2898,8 +2921,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 2px solid white;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+  border: 2.5px solid white;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
   white-space: nowrap;
   line-height: 1;
 }
@@ -2911,12 +2934,14 @@
   box-shadow: none !important;
   color: var(--ink) !important;
   font-family: 'Instrument Sans', sans-serif !important;
-  font-size: 0.72rem !important;
-  font-weight: 600 !important;
+  font-size: 0.73rem !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.01em !important;
   text-shadow:
-    0 0 3px rgba(255,255,255,0.95),
-    0 0 6px rgba(255,255,255,0.8),
-    0 1px 2px rgba(255,255,255,0.9) !important;
+    0 0 4px rgba(255,255,255,1),
+    0 0 8px rgba(255,255,255,0.9),
+    0 1px 3px rgba(255,255,255,0.95),
+    0 -1px 3px rgba(255,255,255,0.95) !important;
   padding: 2px 0 !important;
   white-space: nowrap !important;
   text-align: center !important;
@@ -2926,28 +2951,42 @@
   display: none !important;
 }
 
-/* Map Tile Warmth Filter */
+/* Map Tile Warmth Filter + subtle vignette */
 .result-map-wrap .leaflet-tile-pane,
 .mustsee-map-wrap .leaflet-tile-pane {
-  filter: saturate(0.85) sepia(0.08) brightness(1.02);
+  filter: saturate(0.88) sepia(0.06) brightness(1.02) contrast(1.03);
+}
+
+/* Subtle inner vignette on map containers */
+.result-map-wrap::after,
+.mustsee-map-wrap::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 40px rgba(24,23,15,0.06);
+  pointer-events: none;
+  z-index: 500;
 }
 
 /* Map City Labels (hover tooltips) */
 .map-city-label {
-  background: rgba(40, 40, 35, 0.88) !important;
+  background: rgba(24, 23, 15, 0.9) !important;
   color: white !important;
   border: none !important;
-  border-radius: 6px !important;
-  padding: 5px 10px !important;
+  border-radius: 8px !important;
+  padding: 6px 12px !important;
   font-family: var(--font-body) !important;
-  font-size: 0.78rem !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
   line-height: 1.3 !important;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.2) !important;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.25) !important;
   white-space: nowrap !important;
+  backdrop-filter: blur(8px) !important;
 }
 
 .map-city-label::before {
-  border-top-color: rgba(40, 40, 35, 0.88) !important;
+  border-top-color: rgba(24, 23, 15, 0.9) !important;
 }
 
 /* Map Leg Badges (transport info on lines) */
@@ -2957,41 +2996,48 @@
 }
 
 .map-leg-badge-inner {
-  background: rgba(40, 40, 35, 0.8);
+  background: rgba(24, 23, 15, 0.85);
   color: white;
-  padding: 3px 8px;
-  border-radius: 10px;
+  padding: 4px 10px;
+  border-radius: 12px;
   font-family: var(--font-body);
-  font-size: 0.65rem;
+  font-size: 0.68rem;
   font-weight: 600;
   white-space: nowrap;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
   text-align: center;
+  backdrop-filter: blur(4px);
+  letter-spacing: 0.01em;
 }
 
 .map-leg-badge-flight {
-  background: rgba(196, 101, 74, 0.85);
+  background: rgba(196, 101, 74, 0.9);
+  box-shadow: 0 2px 8px rgba(196,101,74,0.3);
 }
 
 .map-leg-badge-train {
-  background: rgba(40, 40, 35, 0.75);
+  background: rgba(24, 23, 15, 0.8);
 }
 
 .map-leg-badge-bus,
 .map-leg-badge-sleeper_bus {
-  background: rgba(42, 124, 118, 0.8);
+  background: rgba(42, 124, 118, 0.85);
+  box-shadow: 0 2px 8px rgba(42,124,118,0.25);
 }
 
 .map-leg-badge-boat {
-  background: rgba(31, 95, 90, 0.85);
+  background: rgba(31, 95, 90, 0.9);
+  box-shadow: 0 2px 8px rgba(31,95,90,0.25);
 }
 
 .map-leg-badge-car {
-  background: rgba(139, 105, 20, 0.85);
+  background: rgba(139, 105, 20, 0.9);
+  box-shadow: 0 2px 8px rgba(139,105,20,0.2);
 }
 
 .map-leg-badge-motorbike {
-  background: rgba(196, 101, 74, 0.8);
+  background: rgba(196, 101, 74, 0.85);
+  box-shadow: 0 2px 8px rgba(196,101,74,0.25);
 }
 
 /* Route Adjust Section */
