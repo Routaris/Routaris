@@ -1599,7 +1599,12 @@ const Results = {
         }
         .pb-cover .pb-logo { margin-bottom: 2.5rem; }
         .pb-cover .pb-logo svg { width: 180px; height: auto; }
-        .pb-cover .pb-logo svg path { fill: #fff !important; }
+        .pb-cover .pb-logo svg path[fill="#B3553A"],
+        .pb-cover .pb-logo svg path[fill="#b3553a"] { fill: #fff !important; }
+        .pb-cover .pb-logo svg path[fill="#FFFFFF"],
+        .pb-cover .pb-logo svg path[fill="#ffffff"] { fill: #fff !important; }
+        .pb-cover .pb-logo svg path[fill="#327A7E"],
+        .pb-cover .pb-logo svg path[fill="#327a7e"] { fill: rgba(255,255,255,0.7) !important; }
         .pb-cover-title {
           font-size: 2.4rem;
           line-height: 1.2;
@@ -1689,6 +1694,21 @@ const Results = {
           border-left: 2px dashed #ccc;
           margin-left: 13px;
         }
+
+        /* Page Header (brand bar at top of content pages) */
+        .pb-page-brand {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding-bottom: 0.5rem;
+          margin-bottom: 1.25rem;
+          border-bottom: 1.5px solid #e0d5c7;
+          font-size: 0.7rem;
+          color: #aaa;
+        }
+        .pb-page-brand-left { display: flex; align-items: center; gap: 0.4rem; }
+        .pb-page-brand-left svg { width: 60px; height: auto; opacity: 0.5; }
+        .pb-page-brand-right { font-family: 'DM Serif Display', Georgia, serif; font-size: 0.75rem; color: #bbb; }
 
         /* Stop Pages */
         .pb-stop-page {
@@ -1925,8 +1945,13 @@ const Results = {
         </div>`;
 
       // ===== ROUTE OVERVIEW PAGE =====
+      const overviewBrand = logoSvg
+        ? `<div class="pb-page-brand"><div class="pb-page-brand-left">${logoSvg}</div><div class="pb-page-brand-right">${brandName}</div></div>`
+        : `<div class="pb-page-brand"><div class="pb-page-brand-left">Routaris</div><div class="pb-page-brand-right">${brandName}</div></div>`;
+
       html += `
         <div class="pb-overview">
+          ${overviewBrand}
           <h2 class="pb-section-title">Routenübersicht</h2>`;
 
       if (mapDataUrl) {
@@ -1966,8 +1991,13 @@ const Results = {
         const dateRange = this._formatDateRange(stop, startDay);
         const heroUrl = stopImages[stop.city] || '';
 
+        const pageBrand = logoSvg
+          ? `<div class="pb-page-brand"><div class="pb-page-brand-left">${logoSvg}</div><div class="pb-page-brand-right">${brandName}</div></div>`
+          : `<div class="pb-page-brand"><div class="pb-page-brand-left">Routaris</div><div class="pb-page-brand-right">${brandName}</div></div>`;
+
         html += `
           <div class="pb-stop-page">
+            ${pageBrand}
             <div class="pb-stop-header">
               <span class="pb-stop-num">${i + 1}</span>
               <span class="pb-stop-city">${stop.city}</span>
