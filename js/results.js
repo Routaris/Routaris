@@ -1483,11 +1483,22 @@ const Results = {
   },
 
   /**
-   * Druckt die komplette Route mit allen Stopps
+   * Druckt die komplette Route als Premium-Broschüre mit Cover, Karte, Stopp-Seiten, Budget & Credits
    */
-  printRoute() {
+  async printRoute() {
     const result = App.state.result;
     if (!result) return;
+
+    const cc = CountryConfig.current;
+    const brandName = cc ? cc.brandName : 'Routaris';
+    const brandEmoji = cc ? cc.brandEmoji : '';
+    const countryId = cc ? cc.id : 'china';
+    const seasonLabels = { spring: 'Frühling', summer: 'Sommer', autumn: 'Herbst', winter: 'Winter' };
+    const groupLabels = { solo: 'Solo', couple: 'Paar', family: 'Familie', friends: 'Freunde' };
+    const season = App.state.season ? (seasonLabels[App.state.season] || App.state.season) : '';
+    const group = App.state.group ? (groupLabels[App.state.group] || App.state.group) : '';
+    const modeLabels = { train: 'Zug', flight: 'Flug', bus: 'Bus', sleeper_bus: 'Schlafbus', boat: 'Boot', motorbike: 'Motorrad', car: 'Auto' };
+    const modeIcons = { train: '🚄', flight: '✈️', bus: '🚌', sleeper_bus: '🚌', boat: '⛴️', motorbike: '🏍️', car: '🚙' };
 
     // Print-Container erstellen oder wiederverwenden
     let container = document.getElementById('print-all-stops');
@@ -1498,84 +1509,611 @@ const Results = {
       if (step5Container) step5Container.appendChild(container);
     }
 
-    const cc = CountryConfig.current;
-    const brandName = cc ? cc.brandName : 'Routaris';
-    const brandEmoji = cc ? cc.brandEmoji : '🧭';
-
-    // Route-Header
-    let html = `
-      <div class="print-route-header">
-        <h2>${brandEmoji} ${result.routeName}</h2>
-        <p>${result.routeDescription}</p>
-        <div class="print-stats">
-          <span><strong>${result.totalNights}</strong> Nächte</span>
-          <span><strong>${result.stops.length}</strong> Stopps</span>
-        </div>
+    // --- Loading Indicator ---
+    const loadingOverlay = document.createElement('div');
+    loadingOverlay.id = 'print-loading-overlay';
+    loadingOverlay.innerHTML = `
+      <div style="position:fixed;inset:0;background:rgba(255,255,255,0.92);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;">
+        <div style="width:40px;height:40px;border:3px solid #e0d5c7;border-top-color:#B3553A;border-radius:50%;animation:spin 0.8s linear infinite;"></div>
+        <div style="font-family:var(--font-display);font-size:1.1rem;color:#2D343B;">Broschüre wird vorbereitet...</div>
       </div>
     `;
+    document.body.appendChild(loadingOverlay);
 
-    // Alle Stopps mit Transport-Legs dazwischen
-    result.stops.forEach((stop, i) => {
-      let startDay = 1;
-      for (let j = 0; j < i; j++) startDay += result.stops[j].nights;
-
-      // Transport-Leg VOR diesem Stop
-      if (i > 0) {
-        const leg = this.findLeg(result.legs, result.stops[i - 1].city, stop.city);
-        if (leg) {
-          const modeLabels = { train: '🚄 Zug', flight: '✈️ Flug', bus: '🚌 Bus', sleeper_bus: '🚌 Schlafbus', boat: '⛴️ Boot', motorbike: '🏍️ Motorrad', car: '🚙 Auto' };
-          const mode = this.normalizeLegMode(leg.mode);
-          const label = modeLabels[mode] || '🚄 Zug';
-          html += `<div class="print-transport">${label}: ${leg.from} → ${leg.to} (${leg.duration}, ${leg.cost})</div>`;
+    try {
+      // --- 1) Map Screenshot via html2canvas ---
+      let mapDataUrl = '';
+      const mapEl = document.getElementById('result-map');
+      if (mapEl && typeof html2canvas !== 'undefined') {
+        try {
+          const canvas = await html2canvas(mapEl, {
+            useCORS: true,
+            allowTaint: true,
+            scale: 2,
+            backgroundColor: '#ffffff',
+            logging: false
+          });
+          mapDataUrl = canvas.toDataURL('image/png');
+        } catch (e) {
+          console.warn('Map screenshot failed:', e);
         }
       }
 
+      // --- 2) Load hero images for each stop ---
+      const stopImages = {};
+      const imagePromises = result.stops.map(async (stop) => {
+        const wikiTitle = stop.wiki || stop.city;
+        try {
+          const url = await Wiki.getHeroImage(wikiTitle);
+          if (url) stopImages[stop.city] = url;
+        } catch (e) {
+          // Silently skip failed images
+        }
+      });
+      await Promise.allSettled(imagePromises);
+
+      // --- 3) Load Routaris Logo SVG inline ---
+      let logoSvg = '';
+      try {
+        const resp = await fetch('CI/routaris-wordmark-notag.svg');
+        if (resp.ok) logoSvg = await resp.text();
+      } catch (e) {
+        // Fallback: text-based logo
+      }
+      const logoHtml = logoSvg
+        ? `<div class="pb-logo">${logoSvg}</div>`
+        : `<div class="pb-logo-text">Routaris</div>`;
+
+      // --- 4) Build HTML ---
+      let html = `<style>
+        /* === Premium Print Brochure Styles === */
+        .print-brochure * { box-sizing: border-box; }
+        .print-brochure { font-family: 'Instrument Sans', -apple-system, sans-serif; color: #2D343B; line-height: 1.6; }
+        .print-brochure h1, .print-brochure h2, .print-brochure h3, .print-brochure h4 { font-family: 'DM Serif Display', Georgia, serif; margin: 0; }
+
+        /* Cover Page */
+        .pb-cover {
+          page-break-after: always;
+          position: relative;
+          min-height: 100vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          overflow: hidden;
+          background: #1a1a1a;
+          color: #fff;
+        }
+        .pb-cover-bg {
+          position: absolute; inset: 0;
+          background-size: cover;
+          background-position: center;
+          opacity: 0.55;
+          filter: brightness(0.7);
+        }
+        .pb-cover-content {
+          position: relative; z-index: 2;
+          padding: 3rem 2rem;
+          max-width: 600px;
+        }
+        .pb-cover .pb-logo { margin-bottom: 2.5rem; }
+        .pb-cover .pb-logo svg { width: 180px; height: auto; }
+        .pb-cover .pb-logo svg path { fill: #fff !important; }
+        .pb-cover-title {
+          font-size: 2.4rem;
+          line-height: 1.2;
+          margin-bottom: 1rem;
+          letter-spacing: -0.02em;
+        }
+        .pb-cover-desc {
+          font-size: 1rem;
+          opacity: 0.9;
+          line-height: 1.6;
+          margin-bottom: 2rem;
+        }
+        .pb-cover-stats {
+          display: flex;
+          justify-content: center;
+          gap: 1.5rem;
+          flex-wrap: wrap;
+          margin-bottom: 2.5rem;
+        }
+        .pb-cover-stat {
+          background: rgba(255,255,255,0.15);
+          backdrop-filter: blur(8px);
+          border: 1px solid rgba(255,255,255,0.2);
+          border-radius: 8px;
+          padding: 0.6rem 1rem;
+          font-size: 0.85rem;
+        }
+        .pb-cover-stat strong { display: block; font-size: 1.2rem; margin-bottom: 0.15rem; }
+        .pb-cover-brand {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: 1.1rem;
+          opacity: 0.7;
+          letter-spacing: 0.05em;
+        }
+
+        /* Overview Page */
+        .pb-overview {
+          page-break-after: always;
+          padding: 2.5rem 2rem;
+        }
+        .pb-section-title {
+          font-size: 1.6rem;
+          color: #2D343B;
+          margin-bottom: 1.5rem;
+          padding-bottom: 0.5rem;
+          border-bottom: 2px solid #B3553A;
+          display: inline-block;
+        }
+        .pb-map-img {
+          width: 100%;
+          max-height: 45vh;
+          object-fit: contain;
+          border-radius: 8px;
+          border: 1px solid #e0d5c7;
+          margin-bottom: 1.5rem;
+        }
+        .pb-route-list { list-style: none; padding: 0; margin: 0; }
+        .pb-route-item {
+          display: flex;
+          align-items: center;
+          gap: 0.75rem;
+          padding: 0.6rem 0;
+        }
+        .pb-route-num {
+          width: 28px; height: 28px;
+          border-radius: 50%;
+          background: #B3553A;
+          color: #fff;
+          display: flex; align-items: center; justify-content: center;
+          font-weight: 700; font-size: 0.8rem;
+          flex-shrink: 0;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .pb-route-city { font-weight: 600; font-size: 0.95rem; }
+        .pb-route-nights { color: #666; font-size: 0.85rem; margin-left: 0.25rem; }
+        .pb-route-leg {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          padding: 0.25rem 0 0.25rem 3rem;
+          font-size: 0.8rem;
+          color: #888;
+        }
+        .pb-route-leg-line {
+          width: 1px; height: 16px;
+          border-left: 2px dashed #ccc;
+          margin-left: 13px;
+        }
+
+        /* Stop Pages */
+        .pb-stop-page {
+          page-break-before: always;
+          padding: 2rem;
+        }
+        .pb-stop-header {
+          display: flex;
+          align-items: baseline;
+          gap: 0.75rem;
+          margin-bottom: 0.25rem;
+        }
+        .pb-stop-num {
+          width: 36px; height: 36px;
+          border-radius: 50%;
+          background: #B3553A;
+          color: #fff;
+          display: flex; align-items: center; justify-content: center;
+          font-weight: 700; font-size: 1rem;
+          flex-shrink: 0;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .pb-stop-city {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: 1.6rem;
+          color: #2D343B;
+        }
+        .pb-stop-meta {
+          font-size: 0.85rem;
+          color: #666;
+          margin-bottom: 0.5rem;
+          padding-left: 3rem;
+        }
+        .pb-stop-tagline {
+          font-style: italic;
+          color: #555;
+          font-size: 0.95rem;
+          margin-bottom: 1.25rem;
+          padding-left: 3rem;
+          border-left: 3px solid #e0d5c7;
+          padding-top: 0.1rem;
+          padding-bottom: 0.1rem;
+        }
+        .pb-stop-hero-img {
+          width: 100%;
+          max-height: 220px;
+          object-fit: cover;
+          border-radius: 8px;
+          margin-bottom: 1.25rem;
+        }
+
+        /* Highlights */
+        .pb-highlights-title, .pb-daily-title, .pb-tips-title {
+          font-size: 1rem;
+          font-weight: 700;
+          color: #2D343B;
+          margin: 1rem 0 0.5rem;
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+        }
+        .pb-highlights-title::before { content: ''; display: inline-block; width: 4px; height: 1em; background: #B3553A; border-radius: 2px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .pb-daily-title::before { content: ''; display: inline-block; width: 4px; height: 1em; background: #327A7E; border-radius: 2px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .pb-highlights-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.5rem 1.25rem;
+        }
+        .pb-highlight {
+          font-size: 0.85rem;
+          line-height: 1.5;
+          padding: 0.4rem 0;
+        }
+        .pb-highlight-icon { margin-right: 0.3rem; }
+        .pb-highlight strong { color: #2D343B; }
+        .pb-highlight-desc { color: #555; }
+
+        /* Daily Plan */
+        .pb-daily-plan { margin-top: 0.25rem; }
+        .pb-day {
+          margin-bottom: 0.5rem;
+          font-size: 0.85rem;
+          line-height: 1.55;
+          padding-left: 0.75rem;
+          border-left: 2px solid #e0d5c7;
+        }
+        .pb-day-label {
+          font-weight: 700;
+          color: #327A7E;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .pb-day-title { font-weight: 600; color: #2D343B; }
+        .pb-day-activities { color: #555; }
+
+        /* Tips Box */
+        .pb-tips-box {
+          margin-top: 0.75rem;
+          background: #f0f7f7;
+          border-left: 4px solid #327A7E;
+          border-radius: 0 6px 6px 0;
+          padding: 0.75rem 1rem;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .pb-tips-title { margin-top: 0; margin-bottom: 0.4rem; }
+        .pb-tips-title::before { content: ''; display: inline-block; width: 4px; height: 1em; background: #327A7E; border-radius: 2px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        .pb-tip {
+          font-size: 0.82rem;
+          line-height: 1.5;
+          margin-bottom: 0.2rem;
+          color: #444;
+        }
+
+        /* Budget & Info Page */
+        .pb-budget-page {
+          page-break-before: always;
+          padding: 2.5rem 2rem;
+        }
+        .pb-budget-grid {
+          display: grid;
+          grid-template-columns: repeat(4, 1fr);
+          gap: 1rem;
+          margin-bottom: 1rem;
+        }
+        .pb-budget-item {
+          text-align: center;
+          padding: 1rem 0.5rem;
+          border: 1px solid #e0d5c7;
+          border-radius: 8px;
+        }
+        .pb-budget-icon { font-size: 1.5rem; margin-bottom: 0.3rem; }
+        .pb-budget-label { font-size: 0.8rem; color: #888; margin-bottom: 0.2rem; }
+        .pb-budget-value { font-weight: 700; font-size: 1rem; color: #2D343B; }
+        .pb-budget-total {
+          text-align: center;
+          padding: 0.75rem;
+          background: #faf6f1;
+          border-radius: 8px;
+          border: 2px solid #B3553A;
+          font-size: 1rem;
+          margin-bottom: 0.5rem;
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .pb-budget-total strong { color: #B3553A; font-size: 1.2rem; }
+        .pb-budget-hint { font-size: 0.75rem; color: #999; text-align: center; margin-bottom: 2rem; }
+
+        .pb-info-title {
+          font-size: 1.2rem;
+          color: #2D343B;
+          margin: 2rem 0 1rem;
+          padding-bottom: 0.3rem;
+          border-bottom: 1px solid #e0d5c7;
+        }
+        .pb-info-grid {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 0.75rem;
+        }
+        .pb-info-card {
+          padding: 0.75rem;
+          border: 1px solid #e0d5c7;
+          border-radius: 8px;
+          font-size: 0.85rem;
+        }
+        .pb-info-card-icon { font-size: 1.1rem; margin-bottom: 0.2rem; }
+        .pb-info-card-title { font-weight: 700; color: #2D343B; margin-bottom: 0.2rem; }
+        .pb-info-card-text { color: #555; line-height: 1.5; }
+
+        /* Credits Page */
+        .pb-credits {
+          page-break-before: always;
+          min-height: 60vh;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          justify-content: center;
+          text-align: center;
+          padding: 3rem 2rem;
+          color: #888;
+        }
+        .pb-credits .pb-logo { margin-bottom: 1.5rem; }
+        .pb-credits .pb-logo svg { width: 140px; height: auto; }
+        .pb-credits-brand {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: 1.2rem;
+          color: #2D343B;
+          margin-bottom: 0.5rem;
+        }
+        .pb-credits-route {
+          font-size: 0.95rem;
+          color: #555;
+          margin-bottom: 1.5rem;
+        }
+        .pb-credits-date, .pb-credits-url { font-size: 0.85rem; margin-bottom: 0.3rem; }
+        .pb-credits-url { color: #327A7E; }
+        .pb-credits-images {
+          margin-top: 2rem;
+          font-size: 0.7rem;
+          color: #aaa;
+          max-width: 400px;
+          line-height: 1.5;
+        }
+
+        .pb-logo-text {
+          font-family: 'DM Serif Display', Georgia, serif;
+          font-size: 1.5rem;
+          color: #B3553A;
+          letter-spacing: 0.02em;
+        }
+      </style>
+
+      <div class="print-brochure">`;
+
+      // ===== COVER PAGE =====
+      const heroImgPath = `images/hero/${countryId}.jpg`;
       html += `
-        <div class="print-stop">
-          <div class="print-stop-header">
-            <span class="print-stop-num">${i + 1}</span>
-            <span class="print-stop-city">${stop.city}</span>
-            <span class="print-stop-nights">— ${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'} (${this._formatDateRange(stop, startDay)})</span>
+        <div class="pb-cover">
+          <div class="pb-cover-bg" style="background-image: url('${heroImgPath}');"></div>
+          <div class="pb-cover-content">
+            ${logoHtml}
+            <h1 class="pb-cover-title">${result.routeName}</h1>
+            <p class="pb-cover-desc">${result.routeDescription}</p>
+            <div class="pb-cover-stats">
+              <div class="pb-cover-stat"><strong>${result.totalNights}</strong>Nächte</div>
+              <div class="pb-cover-stat"><strong>${result.stops.length}</strong>Stopps</div>
+              ${season ? `<div class="pb-cover-stat"><strong>${season}</strong>Reisezeit</div>` : ''}
+              ${group ? `<div class="pb-cover-stat"><strong>${group}</strong>Reisegruppe</div>` : ''}
+            </div>
+            <div class="pb-cover-brand">${brandEmoji} ${brandName}</div>
           </div>
-          ${stop.tagline ? `<div class="print-stop-tagline">${stop.tagline}</div>` : ''}
+        </div>`;
 
-          ${stop.highlights && stop.highlights.length ? `
-            <div class="print-section-title">Highlights</div>
-            ${stop.highlights.map(h => `
-              <div class="print-highlight">${h.icon || '📍'} <strong>${h.title}</strong> — ${h.description}</div>
-            `).join('')}
-          ` : ''}
+      // ===== ROUTE OVERVIEW PAGE =====
+      html += `
+        <div class="pb-overview">
+          <h2 class="pb-section-title">Routenübersicht</h2>`;
 
-          ${stop.dailyPlan && stop.dailyPlan.length ? `
-            <div class="print-section-title">Tagesplan</div>
-            ${stop.dailyPlan.map(d => `
-              <div class="print-day"><strong>${(() => {
-                const globalDay = startDay + d.day - 1;
-                if (stop.arrivalDate) {
-                  const dt = new Date(stop.arrivalDate + 'T12:00:00');
-                  dt.setDate(dt.getDate() + d.day - 1);
-                  return dt.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
-                }
-                if (App.state && App.state.arrivalDate) {
-                  const base = new Date(App.state.arrivalDate + 'T12:00:00');
-                  base.setDate(base.getDate() + globalDay - 1);
-                  return base.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
-                }
-                return 'Tag ' + globalDay;
-              })()}: ${d.title}</strong> — ${d.activities}</div>
-            `).join('')}
-          ` : ''}
+      if (mapDataUrl) {
+        html += `<img class="pb-map-img" src="${mapDataUrl}" alt="Route Map" />`;
+      }
 
-          ${stop.tips && stop.tips.length ? `
-            <div class="print-section-title">Tipps</div>
-            ${stop.tips.map(t => `<div class="print-tip">${t.icon || '💡'} ${t.text}</div>`).join('')}
-          ` : ''}
-        </div>
-      `;
-    });
+      html += `<ul class="pb-route-list">`;
+      result.stops.forEach((stop, i) => {
+        html += `
+          <li class="pb-route-item">
+            <span class="pb-route-num">${i + 1}</span>
+            <span class="pb-route-city">${stop.city}</span>
+            <span class="pb-route-nights">· ${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'}</span>
+          </li>`;
 
-    container.innerHTML = html;
-    window.print();
+        // Transport leg after this stop (before next)
+        if (i < result.stops.length - 1) {
+          const leg = this.findLeg(result.legs, stop.city, result.stops[i + 1].city);
+          if (leg) {
+            const mode = this.normalizeLegMode(leg.mode);
+            const icon = modeIcons[mode] || '🚄';
+            const label = modeLabels[mode] || 'Zug';
+            html += `
+              <li class="pb-route-leg">
+                <span class="pb-route-leg-line"></span>
+                ${icon} ${label} · ${leg.duration}${leg.cost ? ` · ${leg.cost}` : ''}
+              </li>`;
+          }
+        }
+      });
+      html += `</ul></div>`;
+
+      // ===== STOP PAGES =====
+      result.stops.forEach((stop, i) => {
+        let startDay = 1;
+        for (let j = 0; j < i; j++) startDay += result.stops[j].nights;
+        const dateRange = this._formatDateRange(stop, startDay);
+        const heroUrl = stopImages[stop.city] || '';
+
+        html += `
+          <div class="pb-stop-page">
+            <div class="pb-stop-header">
+              <span class="pb-stop-num">${i + 1}</span>
+              <span class="pb-stop-city">${stop.city}</span>
+            </div>
+            <div class="pb-stop-meta">${stop.nights} ${stop.nights === 1 ? 'Nacht' : 'Nächte'} · ${dateRange}</div>
+            ${stop.tagline ? `<div class="pb-stop-tagline">${stop.tagline}</div>` : ''}
+            ${heroUrl ? `<img class="pb-stop-hero-img" src="${heroUrl}" alt="${stop.city}" crossorigin="anonymous" />` : ''}`;
+
+        // Highlights
+        if (stop.highlights && stop.highlights.length) {
+          html += `<div class="pb-highlights-title">Highlights</div>`;
+          html += `<div class="pb-highlights-grid">`;
+          stop.highlights.forEach(h => {
+            html += `
+              <div class="pb-highlight">
+                <span class="pb-highlight-icon">${h.icon || '📍'}</span>
+                <strong>${h.title}</strong>
+                <span class="pb-highlight-desc"> — ${h.description}</span>
+              </div>`;
+          });
+          html += `</div>`;
+        }
+
+        // Daily Plan
+        if (stop.dailyPlan && stop.dailyPlan.length) {
+          html += `<div class="pb-daily-title">Tagesplan</div>`;
+          html += `<div class="pb-daily-plan">`;
+          stop.dailyPlan.forEach(d => {
+            const globalDay = startDay + d.day - 1;
+            let dayLabel = 'Tag ' + globalDay;
+            if (stop.arrivalDate) {
+              const dt = new Date(stop.arrivalDate + 'T12:00:00');
+              dt.setDate(dt.getDate() + d.day - 1);
+              dayLabel = dt.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+            } else if (App.state && App.state.arrivalDate) {
+              const base = new Date(App.state.arrivalDate + 'T12:00:00');
+              base.setDate(base.getDate() + globalDay - 1);
+              dayLabel = base.toLocaleDateString('de-DE', { day: 'numeric', month: 'long' });
+            }
+            html += `
+              <div class="pb-day">
+                <span class="pb-day-label">${dayLabel}</span> · <span class="pb-day-title">${d.title}</span><br>
+                <span class="pb-day-activities">${d.activities}</span>
+              </div>`;
+          });
+          html += `</div>`;
+        }
+
+        // Tips
+        if (stop.tips && stop.tips.length) {
+          html += `
+            <div class="pb-tips-box">
+              <div class="pb-tips-title">Tipps</div>
+              ${stop.tips.map(t => `<div class="pb-tip">${t.icon || '💡'} ${t.text}</div>`).join('')}
+            </div>`;
+        }
+
+        html += `</div>`; // close pb-stop-page
+      });
+
+      // ===== BUDGET & INFO PAGE =====
+      const budget = result.budget;
+      const travelInfo = result.travelInfo;
+      if (budget || (travelInfo && travelInfo.length)) {
+        html += `<div class="pb-budget-page">`;
+
+        if (budget) {
+          html += `
+            <h2 class="pb-section-title">Reisebudget</h2>
+            <div class="pb-budget-grid">
+              <div class="pb-budget-item">
+                <div class="pb-budget-icon">🏨</div>
+                <div class="pb-budget-label">Unterkunft</div>
+                <div class="pb-budget-value">${budget.accommodation || '—'}</div>
+              </div>
+              <div class="pb-budget-item">
+                <div class="pb-budget-icon">🍜</div>
+                <div class="pb-budget-label">Essen</div>
+                <div class="pb-budget-value">${budget.food || '—'}</div>
+              </div>
+              <div class="pb-budget-item">
+                <div class="pb-budget-icon">🚄</div>
+                <div class="pb-budget-label">Transport</div>
+                <div class="pb-budget-value">${budget.transport || '—'}</div>
+              </div>
+              <div class="pb-budget-item">
+                <div class="pb-budget-icon">🎫</div>
+                <div class="pb-budget-label">Aktivitäten</div>
+                <div class="pb-budget-value">${budget.activities || '—'}</div>
+              </div>
+            </div>
+            <div class="pb-budget-total">Gesamtbudget · <strong>${budget.total || '—'}</strong></div>
+            <div class="pb-budget-hint">Ohne internationale Flüge. Preise sind Richtwerte und können variieren.</div>`;
+        }
+
+        if (travelInfo && travelInfo.length) {
+          html += `<h3 class="pb-info-title">Gut zu wissen</h3>`;
+          html += `<div class="pb-info-grid">`;
+          travelInfo.forEach(info => {
+            html += `
+              <div class="pb-info-card">
+                <div class="pb-info-card-icon">${info.icon || '💡'}</div>
+                <div class="pb-info-card-title">${info.title}</div>
+                <div class="pb-info-card-text">${info.text}</div>
+              </div>`;
+          });
+          html += `</div>`;
+        }
+
+        html += `</div>`; // close pb-budget-page
+      }
+
+      // ===== CREDITS PAGE =====
+      const today = new Date().toLocaleDateString('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+      const imageCredits = Object.keys(stopImages).length
+        ? `Bilder: Wikipedia / Wikimedia Commons (CC-Lizenzen)`
+        : '';
+
+      html += `
+        <div class="pb-credits">
+          ${logoHtml}
+          <div class="pb-credits-brand">${brandEmoji} ${brandName}</div>
+          <div class="pb-credits-route">${result.routeName}</div>
+          <div class="pb-credits-date">Erstellt am ${today}</div>
+          <div class="pb-credits-url">routaris.com</div>
+          ${imageCredits ? `<div class="pb-credits-images">${imageCredits}</div>` : ''}
+        </div>`;
+
+      html += `</div>`; // close print-brochure
+
+      // --- 5) Insert into container ---
+      container.innerHTML = html;
+
+      // --- 6) Small delay for images to render ---
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // --- 7) Print ---
+      window.print();
+
+    } catch (err) {
+      console.error('Print brochure error:', err);
+    } finally {
+      // --- 8) Remove loading indicator ---
+      const overlay = document.getElementById('print-loading-overlay');
+      if (overlay) overlay.remove();
+    }
   },
 
   /**
