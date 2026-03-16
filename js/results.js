@@ -384,7 +384,7 @@ const Results = {
         marker.unbindTooltip();
         marker.bindTooltip(stop.city, {
           permanent: true, direction: 'bottom',
-          offset: [0, useThumb && thumb ? thumbSize / 2 + 6 : 6],
+          offset: [0, useThumb && thumb ? thumbSize / 2 + 2 : 2],
           className: 'map-stop-label'
         });
       } else {
@@ -396,7 +396,7 @@ const Results = {
         marker.unbindTooltip();
         marker.bindTooltip(stop.city, {
           permanent: true, direction: 'bottom',
-          offset: [0, useThumb && thumb ? thumbSize / 2 + 6 : 4],
+          offset: [0, useThumb && thumb ? thumbSize / 2 + 2 : 0],
           className: 'map-stop-label'
         });
       }
@@ -464,7 +464,7 @@ const Results = {
           this.markers[0].setIcon(combiIcon);
           this.markers[0].unbindTooltip();
           this.markers[0].bindTooltip(firstStop.city, {
-            permanent: true, direction: 'bottom', offset: [0, 6],
+            permanent: true, direction: 'bottom', offset: [0, 2],
             className: 'map-stop-label'
           });
         }
@@ -488,7 +488,7 @@ const Results = {
 
       // Permanentes City-Name-Label
       marker.bindTooltip(stop.city, {
-        permanent: true, direction: 'bottom', offset: [0, 4],
+        permanent: true, direction: 'bottom', offset: [0, 0],
         className: 'map-stop-label'
       });
 
