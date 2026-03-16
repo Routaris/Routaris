@@ -378,6 +378,22 @@
   }
 }
 
+/* --- Stop Pills: disable sticky on mobile (≤768px) --- */
+@media (max-width: 768px) {
+  .stop-pills-wrap {
+    position: relative;
+    top: auto;
+    z-index: auto;
+    background: transparent;
+    padding-top: 0;
+    box-shadow: none;
+  }
+
+  .stop-pills-wrap.is-stuck {
+    box-shadow: none;
+  }
+}
+
 /* --- Timeline, Connectors, Adjust, Share Mobile (≤768px) --- */
 @media (max-width: 768px) {
   .stop-pill-tl {

@@ -1383,6 +1383,94 @@
   flex-shrink: 0;
 }
 
+/* Map Fullscreen Toggle Button */
+.map-fullscreen-btn {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 1000;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: var(--white);
+  color: var(--ink);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+  transition: all var(--transition-fast);
+}
+
+.map-fullscreen-btn:hover {
+  background: var(--terracotta-pale);
+  border-color: var(--terracotta);
+  color: var(--terracotta);
+}
+
+.map-fullscreen-btn svg {
+  flex-shrink: 0;
+}
+
+/* Map Fullscreen Mode */
+.result-map-wrap.map-fullscreen {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+  border-radius: 0 !important;
+  height: 100vh !important;
+  width: 100vw !important;
+  margin: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+}
+
+.result-map-wrap.map-fullscreen #result-map {
+  height: 100vh !important;
+  border-radius: 0 !important;
+}
+
+.map-fullscreen-close {
+  position: absolute;
+  top: 16px;
+  left: 16px;
+  z-index: 10000;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background: var(--white);
+  color: var(--ink);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.15);
+  transition: all var(--transition-fast);
+}
+
+.map-fullscreen-close:hover {
+  background: var(--terracotta-pale);
+  border-color: var(--terracotta);
+  color: var(--terracotta);
+}
+
+/* Hide normal fullscreen btn and export btn when in fullscreen mode */
+.result-map-wrap.map-fullscreen .map-fullscreen-btn {
+  display: none;
+}
+
+/* Move export btn in fullscreen mode */
+.result-map-wrap.map-fullscreen .map-export-btn {
+  top: 16px;
+  right: 16px;
+}
+
 /* Map Export Modal */
 .map-export-modal-inner {
   max-width: 520px;
@@ -1505,14 +1593,24 @@
 }
 
 #result-map {
-  height: 460px;
+  height: 500px;
   width: 100%;
 }
 
 /* Stop Pills – Timeline Style */
 .stop-pills-wrap {
-  position: relative;
+  position: sticky;
+  top: 64px;
+  z-index: 100;
+  background: var(--cream);
   margin-bottom: var(--space-xl);
+  padding-top: var(--space-sm);
+  transition: box-shadow var(--transition-base);
+}
+
+/* Subtle shadow when sticky (intersection observer adds this class) */
+.stop-pills-wrap.is-stuck {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
 
 .stop-pills-wrap::before,
@@ -3206,6 +3304,7 @@
   /* Suppress ALL web UI elements */
   .site-header, .site-footer, .progress-bar, .progress-tracker,
   .result-actions, .error-toast, .modal-backdrop, .modal,
+  .saved-routes-drawer, .saved-routes-toast, .saved-routes-confirm,
   .suggestions-section, .route-adjust-section, .share-wrapper,
   .stop-pills, .stop-pills-wrap, .result-map-wrap, .map-export-btn,
   .booking-links-section, .transport-booking-link,

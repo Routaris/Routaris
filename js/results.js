@@ -695,6 +695,20 @@ const Results = {
     pills.addEventListener('scroll', update, { passive: true });
     // Initial check nach Render
     requestAnimationFrame(update);
+
+    // Sticky shadow: detect when pills are stuck via scroll position
+    if (window.innerWidth > 768) {
+      const sentinel = document.createElement('div');
+      sentinel.style.cssText = 'height:1px;margin:0;padding:0;visibility:hidden;pointer-events:none;';
+      wrap.parentElement.insertBefore(sentinel, wrap);
+      const observer = new IntersectionObserver(([entry]) => {
+        wrap.classList.toggle('is-stuck', !entry.isIntersecting);
+      }, { threshold: 0, rootMargin: '-65px 0px 0px 0px' });
+      observer.observe(sentinel);
+      // Store for cleanup
+      this._stickyObserver = observer;
+      this._stickySentinel = sentinel;
+    }
   },
 
   /**
@@ -2147,9 +2161,77 @@ const Results = {
   },
 
   /**
+   * Fullscreen Map Toggle
+   */
+  toggleMapFullscreen() {
+    const wrap = document.querySelector('.result-map-wrap');
+    if (!wrap) return;
+
+    const isFullscreen = wrap.classList.contains('map-fullscreen');
+
+    if (isFullscreen) {
+      // Exit fullscreen
+      wrap.classList.remove('map-fullscreen');
+      // Remove close button
+      const closeBtn = wrap.querySelector('.map-fullscreen-close');
+      if (closeBtn) closeBtn.remove();
+      // Remove ESC listener
+      if (this._escHandler) {
+        document.removeEventListener('keydown', this._escHandler);
+        this._escHandler = null;
+      }
+      // Restore body scroll
+      document.body.style.overflow = '';
+    } else {
+      // Enter fullscreen
+      wrap.classList.add('map-fullscreen');
+      // Prevent body scroll
+      document.body.style.overflow = 'hidden';
+      // Add close button
+      const closeBtn = document.createElement('button');
+      closeBtn.className = 'map-fullscreen-close';
+      closeBtn.innerHTML = `
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        Schließen
+      `;
+      closeBtn.onclick = () => this.toggleMapFullscreen();
+      wrap.appendChild(closeBtn);
+      // ESC key to close
+      this._escHandler = (e) => {
+        if (e.key === 'Escape') this.toggleMapFullscreen();
+      };
+      document.addEventListener('keydown', this._escHandler);
+    }
+
+    // Update map size after layout change
+    if (this.map) {
+      setTimeout(() => this.map.invalidateSize(), 50);
+    }
+  },
+
+  /**
    * Cleanup
    */
   destroy() {
+    // Close fullscreen map if open
+    const wrap = document.querySelector('.result-map-wrap');
+    if (wrap && wrap.classList.contains('map-fullscreen')) {
+      this.toggleMapFullscreen();
+    }
+    // Clean up sticky observer
+    if (this._stickyObserver) {
+      this._stickyObserver.disconnect();
+      this._stickyObserver = null;
+    }
+    if (this._stickySentinel) {
+      this._stickySentinel.remove();
+      this._stickySentinel = null;
+    }
+    // Clean up ESC handler
+    if (this._escHandler) {
+      document.removeEventListener('keydown', this._escHandler);
+      this._escHandler = null;
+    }
     if (this.map) {
       this.map.remove();
       this.map = null;
