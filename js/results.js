@@ -13,6 +13,12 @@ const Results = {
    * Nutzt stop.arrivalDate/departureDate, fällt auf Berechnung aus App.state zurück,
    * und zeigt "Tag X–Y" wenn keine Daten vorhanden.
    */
+  /** Formatiert Zahlen mit 1000er-Punkt (z.B. "~5500€" → "~5.500€") */
+  _fmtNum(text) {
+    if (!text) return '';
+    return String(text).replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
+  },
+
   _formatDateRange(stop, startDay) {
     const opts = { day: 'numeric', month: 'long' };
     // Option 1: Gemini hat Daten pro Stopp geliefert
@@ -349,8 +355,8 @@ const Results = {
     if (!this.map || !App.state.result) return;
     const zoom = this.map.getZoom();
     const result = App.state.result;
-    const useThumb = zoom >= 5;
-    const thumbSize = useThumb ? Math.min(68, 36 + (zoom - 5) * 5) : 0;
+    const useThumb = zoom >= 4;
+    const thumbSize = useThumb ? Math.min(68, 28 + (zoom - 4) * 6) : 0;
 
     const cs = getComputedStyle(document.documentElement);
     const cv = n => cs.getPropertyValue(n).trim();
@@ -1155,27 +1161,27 @@ const Results = {
           <div class="budget-item">
             <div class="budget-icon">🏨</div>
             <div class="budget-label">Unterkunft</div>
-            <div class="budget-value">${budget.accommodation}</div>
+            <div class="budget-value">${this._fmtNum(budget.accommodation)}</div>
           </div>
           <div class="budget-item">
             <div class="budget-icon">🍜</div>
             <div class="budget-label">Essen</div>
-            <div class="budget-value">${budget.food}</div>
+            <div class="budget-value">${this._fmtNum(budget.food)}</div>
           </div>
           <div class="budget-item">
             <div class="budget-icon">🚄</div>
             <div class="budget-label">Transport</div>
-            <div class="budget-value">${budget.transport}</div>
+            <div class="budget-value">${this._fmtNum(budget.transport)}</div>
           </div>
           <div class="budget-item">
             <div class="budget-icon">🎫</div>
             <div class="budget-label">Aktivitäten</div>
-            <div class="budget-value">${budget.activities}</div>
+            <div class="budget-value">${this._fmtNum(budget.activities)}</div>
           </div>
         </div>
         <div class="budget-total">
           <span>Geschätzt gesamt:</span>
-          <strong>${budget.total}</strong>
+          <strong>${this._fmtNum(budget.total)}</strong>
         </div>
         <div class="budget-hint">Ohne internationale Flüge. Preise sind Richtwerte und können variieren.</div>
       </div>
@@ -2085,25 +2091,25 @@ const Results = {
               <div class="pb-budget-item">
                 <div class="pb-budget-icon">🏨</div>
                 <div class="pb-budget-label">Unterkunft</div>
-                <div class="pb-budget-value">${budget.accommodation || '—'}</div>
+                <div class="pb-budget-value">${this._fmtNum(budget.accommodation) || '—'}</div>
               </div>
               <div class="pb-budget-item">
                 <div class="pb-budget-icon">🍜</div>
                 <div class="pb-budget-label">Essen</div>
-                <div class="pb-budget-value">${budget.food || '—'}</div>
+                <div class="pb-budget-value">${this._fmtNum(budget.food) || '—'}</div>
               </div>
               <div class="pb-budget-item">
                 <div class="pb-budget-icon">🚄</div>
                 <div class="pb-budget-label">Transport</div>
-                <div class="pb-budget-value">${budget.transport || '—'}</div>
+                <div class="pb-budget-value">${this._fmtNum(budget.transport) || '—'}</div>
               </div>
               <div class="pb-budget-item">
                 <div class="pb-budget-icon">🎫</div>
                 <div class="pb-budget-label">Aktivitäten</div>
-                <div class="pb-budget-value">${budget.activities || '—'}</div>
+                <div class="pb-budget-value">${this._fmtNum(budget.activities) || '—'}</div>
               </div>
             </div>
-            <div class="pb-budget-total">Gesamtbudget · <strong>${budget.total || '—'}</strong></div>
+            <div class="pb-budget-total">Gesamtbudget · <strong>${this._fmtNum(budget.total) || '—'}</strong></div>
             <div class="pb-budget-hint">Ohne internationale Flüge. Preise sind Richtwerte und können variieren.</div>`;
         }
 

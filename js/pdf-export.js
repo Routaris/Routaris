@@ -195,26 +195,32 @@ const PDFExport = {
     const el = document.getElementById('result-map');
     if (!el || typeof html2canvas === 'undefined') return null;
     try {
-      // Reset map to show full route before capture (without UI side effects)
+      const wrap = el.closest('.result-map-wrap');
+      // Reset map to show full route before capture
       if (typeof Results !== 'undefined' && Results.map) {
         const result = App.state.result;
         if (result && result.stops && result.stops.length > 1) {
           const latlngs = result.stops.map(s => [s.lat, s.lng]);
-          Results.map.fitBounds(L.latLngBounds(latlngs).pad(0.25));
+          Results.map.fitBounds(L.latLngBounds(latlngs).pad(0.2));
         }
         // Wait for map animation + tile loading
         await new Promise(r => {
           const done = () => { clearTimeout(fallback); r(); };
-          const fallback = setTimeout(done, 2500);
-          Results.map.once('moveend', () => setTimeout(done, 800));
+          const fallback = setTimeout(done, 3000);
+          Results.map.once('moveend', () => setTimeout(done, 1200));
         });
       }
-      // Hide Leaflet UI controls before capture
-      const controls = el.querySelectorAll('.leaflet-control-container');
-      controls.forEach(c => { c._prevDisplay = c.style.display; c.style.display = 'none'; });
+      // Hide ALL overlay UI (controls, buttons, fullscreen btn, export btn)
+      const hideEls = (wrap || el).querySelectorAll(
+        '.leaflet-control-container, .map-export-btn, .map-fullscreen-btn, .map-fullscreen-close'
+      );
+      hideEls.forEach(c => { c._prevDisplay = c.style.display; c.style.display = 'none'; });
+      // Also hide vignette overlay
+      if (wrap) { wrap._prevAfter = wrap.style.cssText; wrap.style.cssText += '; --vignette: none;'; }
       const c = await html2canvas(el, { useCORS: true, scale: 3, logging: false, backgroundColor: '#faf9f7' });
-      // Restore UI controls
-      controls.forEach(c => { c.style.display = c._prevDisplay || ''; });
+      // Restore UI
+      hideEls.forEach(c => { c.style.display = c._prevDisplay || ''; });
+      if (wrap) wrap.style.cssText = wrap._prevAfter || '';
       return { data: c.toDataURL('image/jpeg', 0.92), w: c.width, h: c.height };
     } catch { return null; }
   },
@@ -429,7 +435,7 @@ const PDFExport = {
           doc.setFont(this.FB, 'normal');
           doc.setFontSize(7.5);
           doc.setTextColor(...C.inkMuted);
-          doc.text(`${label}, ${leg.duration}, ${leg.cost}`, this.M + 14, y + 1);
+          doc.text(`${label}, ${leg.duration}, ${this._fmtNum(leg.cost)}`, this.M + 14, y + 1);
         }
         y += 8;
       }
@@ -505,9 +511,6 @@ const PDFExport = {
       const nightsLbl = stop.nights === 1 ? 'Nacht' : 'N\u00E4chte';
       doc.text(`${stop.nights} ${nightsLbl}  |  ${this._dateRange(stop, sd)}`, this.M + 14, 66);
 
-      // Mini-map in top right corner
-      this._drawMiniMap(doc, result, idx);
-
       y = 74;
     } else {
       await this._header(doc, imgs);
@@ -531,9 +534,6 @@ const PDFExport = {
       doc.setTextColor(...C.terra);
       const nightsLabel = stop.nights === 1 ? 'Nacht' : 'N\u00E4chte';
       doc.text(`${stop.nights} ${nightsLabel}  |  ${this._dateRange(stop, sd)}`, this.M + 14, hy + 12);
-
-      // Mini-map in top right corner
-      this._drawMiniMap(doc, result, idx);
 
       y = 44;
     }
@@ -725,7 +725,7 @@ const PDFExport = {
       doc.setFont(this.FB, 'normal');
       doc.setFontSize(9);
       doc.setTextColor(...C.teal);
-      const transportText = `Weiterreise nach ${nextCity}  \u2192  ${label}, ${leg.duration}, ${leg.cost}`;
+      const transportText = `Weiterreise nach ${nextCity}  \u2192  ${label}, ${leg.duration}, ${this._fmtNum(leg.cost)}`;
       doc.text(transportText, this.M, barY + 8, { maxWidth: this.CW });
     }
   },
@@ -777,7 +777,7 @@ const PDFExport = {
         doc.setFont(this.FD, 'normal');
         doc.setFontSize(14);
         doc.setTextColor(...C.ink);
-        doc.text(this._clean(item.value || '-'), x + 10, cy + 25);
+        doc.text(this._fmtNum(this._clean(item.value || '-')), x + 10, cy + 25);
       });
 
       y += 2 * (cardH + gap) + 6;
@@ -842,7 +842,7 @@ const PDFExport = {
       doc.setFont(this.FD, 'normal');
       doc.setFontSize(15);
       doc.setTextColor(...C.white);
-      doc.text('Gesch\u00E4tzt: ' + this._clean(b.total || '-'), this.PW / 2, y + 13, { align: 'center' });
+      doc.text('Gesch\u00E4tzt: ' + this._fmtNum(this._clean(b.total || '-')), this.PW / 2, y + 13, { align: 'center' });
       y += 26;
 
       doc.setFont(this.FB, 'normal');
@@ -1222,6 +1222,12 @@ const PDFExport = {
     return text
       .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE00}-\u{FE0F}\u{1F900}-\u{1F9FF}\u{1FA00}-\u{1FA6F}\u{1FA70}-\u{1FAFF}\u{200D}\u{20E3}\u{E0020}-\u{E007F}]/gu, '')
       .replace(/\s{2,}/g, ' ').trim();
+  },
+
+  /** Formatiert Zahlen in Texten mit 1000er-Punkt (z.B. "~5500€" → "~5.500€") */
+  _fmtNum(text) {
+    if (!text) return '';
+    return text.replace(/(\d)(?=(\d{3})+(?!\d))/g, '$1.');
   },
 
   // ═══════════════════════════════════════
